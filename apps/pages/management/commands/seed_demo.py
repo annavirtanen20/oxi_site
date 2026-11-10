@@ -26,7 +26,6 @@ from apps.pages.models import (
 )
 from apps.scheduling.models import BookingPolicy, WorkingHours
 
-
 SERVICES = [
     dict(
         name="Valletta walking tour",
@@ -155,9 +154,27 @@ class Command(BaseCommand):
                 show_in_menus=True,
                 intro="Short answers to what guests ask most often.",
                 questions=[
-                    ("question", {"question": "How do I book?", "answer": "<p>Pick a service, choose a free time and send the request. I confirm by email, usually within a few hours.</p>"}),
-                    ("question", {"question": "Can I cancel?", "answer": "<p>[Your cancellation terms, e.g. free up to 48 hours before the start.]</p>"}),
-                    ("question", {"question": "Are entrance tickets included?", "answer": "<p>[Explain what is and isn't included.]</p>"}),
+                    (
+                        "question",
+                        {
+                            "question": "How do I book?",
+                            "answer": "<p>Pick a service, choose a free time and send the request. I confirm by email, usually within a few hours.</p>",
+                        },
+                    ),
+                    (
+                        "question",
+                        {
+                            "question": "Can I cancel?",
+                            "answer": "<p>[Your cancellation terms, e.g. free up to 48 hours before the start.]</p>",
+                        },
+                    ),
+                    (
+                        "question",
+                        {
+                            "question": "Are entrance tickets included?",
+                            "answer": "<p>[Explain what is and isn't included.]</p>",
+                        },
+                    ),
                 ],
                 policies="<h2>Booking terms</h2><p>[Payment, deposit, cancellation and weather policy.]</p>",
             )

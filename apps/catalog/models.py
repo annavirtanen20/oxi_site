@@ -29,9 +29,7 @@ class Service(models.Model):
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.TOUR)
     short_description = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
-    includes = models.TextField(
-        blank=True, help_text="What's included, one item per line."
-    )
+    includes = models.TextField(blank=True, help_text="What's included, one item per line.")
     image = models.ForeignKey(
         "wagtailimages.Image",
         null=True,
@@ -93,7 +91,11 @@ class Service(models.Model):
     def price_label(self) -> str:
         if self.price_type == self.PriceType.ON_REQUEST:
             return "Price on request"
-        amount = f"€{self.price:,.0f}" if self.price == self.price.to_integral() else f"€{self.price:,.2f}"
+        amount = (
+            f"€{self.price:,.0f}"
+            if self.price == self.price.to_integral()
+            else f"€{self.price:,.2f}"
+        )
         suffix = {
             self.PriceType.PER_HOUR: " per hour",
             self.PriceType.PER_PERSON: " per person",

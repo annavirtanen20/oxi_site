@@ -8,7 +8,7 @@ business time zone (settings.TIME_ZONE).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone as dt_timezone
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
@@ -29,10 +29,10 @@ class Interval:
     start: datetime
     end: datetime
 
-    def overlaps(self, other: "Interval") -> bool:
+    def overlaps(self, other: Interval) -> bool:
         return self.start < other.end and other.start < self.end
 
-    def contains(self, other: "Interval") -> bool:
+    def contains(self, other: Interval) -> bool:
         return self.start <= other.start and other.end <= self.end
 
 
@@ -41,15 +41,13 @@ def working_windows(day: date) -> list[Interval]:
     tz = business_tz()
     windows = []
     for wh in WorkingHours.objects.filter(weekday=day.weekday()):
-        start = datetime.combine(day, wh.start, tzinfo=tz).astimezone(dt_timezone.utc)
-        end = datetime.combine(day, wh.end, tzinfo=tz).astimezone(dt_timezone.utc)
+        start = datetime.combine(day, wh.start, tzinfo=tz).astimezone(UTC)
+        end = datetime.combine(day, wh.end, tzinfo=tz).astimezone(UTC)
         windows.append(Interval(start, end))
     return sorted(windows, key=lambda w: w.start)
 
 
-def busy_intervals(
-    span: Interval, exclude_booking_id: int | None = None
-) -> list[Interval]:
+def busy_intervals(span: Interval, exclude_booking_id: int | None = None) -> list[Interval]:
     """Everything that blocks time inside `span`: active bookings and time off."""
     from apps.bookings.models import Booking  # avoid import cycle
 
@@ -88,7 +86,7 @@ def availability_problem(
         raise ValueError("start must be timezone-aware")
     now = now or timezone.now()
     policy = policy or BookingPolicy.get()
-    start = start.astimezone(dt_timezone.utc)
+    start = start.astimezone(UTC)
     core, blocked = service_intervals(service, start)
 
     if not service.is_active:
@@ -110,9 +108,7 @@ def is_available(service: Service, start: datetime, **kwargs) -> bool:
     return availability_problem(service, start, **kwargs) is None
 
 
-def available_slots(
-    service: Service, day: date, *, now: datetime | None = None
-) -> list[datetime]:
+def available_slots(service: Service, day: date, *, now: datetime | None = None) -> list[datetime]:
     """Bookable start times for `service` on `day`, in Malta time."""
     if not service.is_active:
         return []
@@ -136,10 +132,7 @@ def available_slots(
         start = window.start
         while start + service.duration <= window.end:
             core, blocked = service_intervals(service, start)
-            if (
-                earliest <= start <= latest
-                and not any(blocked.overlaps(b) for b in busy)
-            ):
+            if earliest <= start <= latest and not any(blocked.overlaps(b) for b in busy):
                 slots.append(start.astimezone(tz))
             start += policy.slot_step
     return slots

@@ -32,8 +32,17 @@ def first_free_slot(service):
 
 @pytest.mark.parametrize(
     "url",
-    ["/", "/about/", "/services/", "/services/valletta-walking-tour/", "/faq/", "/contact/",
-     "/privacy/", "/terms/", "/book/"],
+    [
+        "/",
+        "/about/",
+        "/services/",
+        "/services/valletta-walking-tour/",
+        "/faq/",
+        "/contact/",
+        "/privacy/",
+        "/terms/",
+        "/book/",
+    ],
 )
 def test_public_pages_render(site, client, url):
     response = client.get(url)
@@ -66,8 +75,13 @@ def test_contact_form_saves_message(site, client):
 def test_contact_honeypot_drops_spam(site, client):
     client.post(
         "/contact/",
-        {"name": "Bot", "email": "bot@example.com", "message": "spam", "privacy_consent": "on",
-         "website": "http://spam"},
+        {
+            "name": "Bot",
+            "email": "bot@example.com",
+            "message": "spam",
+            "privacy_consent": "on",
+            "website": "http://spam",
+        },
     )
     assert not ContactMessage.objects.exists()
 
@@ -87,8 +101,13 @@ def test_booking_wizard_happy_path(site, client):
 
     response = client.post(
         details_url,
-        {"start": start.isoformat(), "name": "Guest", "email": "guest@example.com",
-         "party_size": 2, "privacy_consent": "on"},
+        {
+            "start": start.isoformat(),
+            "name": "Guest",
+            "email": "guest@example.com",
+            "party_size": 2,
+            "privacy_consent": "on",
+        },
     )
     booking = Booking.objects.get()
     assert response.status_code == 302
@@ -106,8 +125,13 @@ def test_booking_wizard_happy_path(site, client):
 def test_wizard_reports_taken_slot(site, client):
     tour = Service.objects.get(slug="valletta-walking-tour")
     start = first_free_slot(tour)
-    data = {"start": start.isoformat(), "name": "A", "email": "a@example.com",
-            "party_size": 1, "privacy_consent": "on"}
+    data = {
+        "start": start.isoformat(),
+        "name": "A",
+        "email": "a@example.com",
+        "party_size": 1,
+        "privacy_consent": "on",
+    }
     client.post(reverse("book_details", args=[tour.slug]), data)
     response = client.post(
         reverse("book_details", args=[tour.slug]), {**data, "email": "b@example.com"}
@@ -135,9 +159,15 @@ def test_airport_booking_uses_flight_time(site, client):
     arrival = timezone.localdate() + timedelta(days=5)
     response = client.post(
         reverse("book_details", args=[airport.slug]),
-        {"flight_number": "KM101", "arrival_date": arrival.isoformat(), "arrival_time": "23:40",
-         "name": "Late Flyer", "email": "late@example.com", "party_size": 2,
-         "privacy_consent": "on"},
+        {
+            "flight_number": "KM101",
+            "arrival_date": arrival.isoformat(),
+            "arrival_time": "23:40",
+            "name": "Late Flyer",
+            "email": "late@example.com",
+            "party_size": 2,
+            "privacy_consent": "on",
+        },
     )
     assert response.status_code == 302
     booking = Booking.objects.get()
@@ -150,8 +180,13 @@ def test_client_can_cancel_from_booking_page(site, client):
     start = first_free_slot(tour)
     client.post(
         reverse("book_details", args=[tour.slug]),
-        {"start": start.isoformat(), "name": "A", "email": "a@example.com",
-         "party_size": 1, "privacy_consent": "on"},
+        {
+            "start": start.isoformat(),
+            "name": "A",
+            "email": "a@example.com",
+            "party_size": 1,
+            "privacy_consent": "on",
+        },
     )
     booking = Booking.objects.get()
     response = client.post(reverse("booking_cancel", args=[booking.manage_token]), follow=True)

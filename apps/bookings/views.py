@@ -20,7 +20,13 @@ from apps.scheduling.slots import available_days, available_slots, business_tz
 
 from .forms import BookingDetailsForm
 from .models import Booking, BookingEvent
-from .services import BookingError, SlotUnavailable, create_booking, is_free_cancellation, transition
+from .services import (
+    BookingError,
+    SlotUnavailable,
+    create_booking,
+    is_free_cancellation,
+    transition,
+)
 
 
 def _active_service(slug):
@@ -144,9 +150,7 @@ def details(request, slug):
 
 
 def _booking_for_token(token) -> Booking:
-    booking = (
-        Booking.objects.select_related("service", "client").filter(manage_token=token).first()
-    )
+    booking = Booking.objects.select_related("service", "client").filter(manage_token=token).first()
     if booking is None:
         raise Http404
     return booking

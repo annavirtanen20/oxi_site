@@ -125,13 +125,63 @@ Photos: `docker compose -f docker-compose.prod.yml exec -T web tar -C /app/media
 
 ---
 
-## Updating the site
+## 7. Automatic deploys from GitHub (CI/CD)
+
+`.github/workflows/ci.yml` runs on every push and pull request:
+
+| Stage | When | What |
+| --- | --- | --- |
+| lint | always | `ruff check`, `ruff format --check` |
+| test | always | Django checks, missing migrations, `pytest` against PostgreSQL 16 |
+| build | push to `develop` or `main` | Docker image → `ghcr.io/<login>/oxi_site:sha-<commit>` (plus a `:develop` / `:main` tag), smoke test |
+| deploy | push to `main`, if enabled | SSH to the server → `deploy/deploy.sh sha-<commit>` |
+
+`deploy.sh` pulls the image, backs up the database, starts the new version and waits for
+`/health/`. If the new version isn't healthy within 3 minutes, it starts the previous tag
+again and the GitHub job turns red. Database migrations are not undone automatically —
+restore from the pre-deploy dump in `/var/backups/oxi` if a migration was the problem.
+
+**Turn it on (once the server from steps 1–6 works):**
+
+1. **Let the server pull images.** After the first successful `build` on GitHub, open the
+   package (repository page → **Packages** → `oxi_site`) → **Package settings** →
+   **Change visibility → Public**. The repository is public anyway, and the image contains no
+   secrets (they live in `deploy/.env` on the server).
+   For a private package instead: create a token with only `read:packages` and run
+   `docker login ghcr.io -u <login>` on the server once.
+2. **Point the server at the image.** In `deploy/.env` set
+   `IMAGE=ghcr.io/<your-login-in-lowercase>/oxi_site`.
+3. **A deploy key for GitHub Actions** (on your computer):
+   ```bash
+   ssh-keygen -t ed25519 -f oxi_deploy -N "" -C "github-actions-deploy"
+   ssh-copy-id -i oxi_deploy.pub oxi@SERVER_IP
+   ssh-keyscan SERVER_IP          # copy the output for DEPLOY_KNOWN_HOSTS
+   ```
+4. **Repository settings → Secrets and variables → Actions:**
+   - Secrets: `DEPLOY_HOST` (server IP), `DEPLOY_USER` (`oxi`),
+     `DEPLOY_SSH_KEY` (contents of the private `oxi_deploy` file),
+     `DEPLOY_KNOWN_HOSTS` (output of `ssh-keyscan`).
+   - Variables: `DEPLOY_ENABLED` = `true`.
+   Delete the local `oxi_deploy` files afterwards; the key lives only in GitHub and on the server.
+5. (Optional) **Settings → Environments → production → Required reviewers**: GitHub then asks
+   you to approve each deploy before it runs.
+
+From then on: merge `develop` → `main` and the site updates itself.
+
+## Updating the site by hand
+
+With CI images (any earlier tag works too, for a manual rollback):
 
 ```bash
-cd ~/oxi_site
-git pull
-cd deploy
-docker compose -f docker-compose.prod.yml up -d --build
+cd ~/oxi_site && git pull
+./deploy/deploy.sh sha-1a2b3c4
+```
+
+Without CI, building on the server:
+
+```bash
+cd ~/oxi_site && git pull
+cd deploy && docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 Migrations and static files are applied automatically when `web` restarts.

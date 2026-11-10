@@ -3,8 +3,8 @@ import secrets
 from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.fields import DateTimeRangeField, RangeOperators
 from django.db import models
-from django.db.models.functions import Lower
 from django.db.backends.postgresql.psycopg_any import DateTimeTZRange
+from django.db.models.functions import Lower
 
 from apps.catalog.models import Service
 
@@ -99,18 +99,18 @@ class Booking(models.Model):
     def __str__(self):
         return f"#{self.pk} {self.service} {self.start:%Y-%m-%d %H:%M} ({self.status})"
 
+    def save(self, *args, **kwargs):
+        if not self.manage_token:
+            self.manage_token = secrets.token_urlsafe(32)
+        self.blocked_period = self.compute_blocked_period()
+        super().save(*args, **kwargs)
+
     def compute_blocked_period(self) -> DateTimeTZRange:
         return DateTimeTZRange(
             self.start - self.service.buffer_before,
             self.end + self.service.buffer_after,
             "[)",
         )
-
-    def save(self, *args, **kwargs):
-        if not self.manage_token:
-            self.manage_token = secrets.token_urlsafe(32)
-        self.blocked_period = self.compute_blocked_period()
-        super().save(*args, **kwargs)
 
     @property
     def is_active(self) -> bool:

@@ -119,7 +119,10 @@ def test_closed_bookings_do_not_block(tour, weekdays_9_to_17, policy, now, clien
 def test_validation_errors(tour, weekdays_9_to_17, policy, now, client_data):
     with pytest.raises(BookingError, match="privacy"):
         create_booking(
-            service=tour, start=WED_11, client_data={**client_data, "privacy_consent": False}, now=now
+            service=tour,
+            start=WED_11,
+            client_data={**client_data, "privacy_consent": False},
+            now=now,
         )
     with pytest.raises(BookingError, match="Group size"):
         create_booking(service=tour, start=WED_11, client_data=client_data, party_size=9, now=now)

@@ -165,10 +165,27 @@ class ClientViewSet(ModelViewSet):
     list_filter = ["kind"]
     search_fields = ["name", "email", "phone", "company"]
     ordering = ["name"]
-    form_fields = ["name", "email", "phone", "messenger", "messenger_handle", "kind", "company", "notes"]
+    form_fields = [
+        "name",
+        "email",
+        "phone",
+        "messenger",
+        "messenger_handle",
+        "kind",
+        "company",
+        "notes",
+    ]
     inspect_view_fields = [
-        "name", "email", "phone", "messenger", "messenger_handle", "kind", "company",
-        "notes", "privacy_consent_at", "created_at",
+        "name",
+        "email",
+        "phone",
+        "messenger",
+        "messenger_handle",
+        "kind",
+        "company",
+        "notes",
+        "privacy_consent_at",
+        "created_at",
     ]
 
     @property
@@ -217,7 +234,12 @@ class BookingPolicyViewSet(ModelViewSet):
     index_view_class = PolicyIndexView
     copy_view_enabled = False
     form_fields = [
-        "slot_step", "min_notice", "horizon", "pending_ttl", "payment_ttl", "free_cancellation",
+        "slot_step",
+        "min_notice",
+        "horizon",
+        "pending_ttl",
+        "payment_ttl",
+        "free_cancellation",
     ]
 
     @property

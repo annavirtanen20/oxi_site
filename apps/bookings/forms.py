@@ -28,9 +28,7 @@ class BookingDetailsForm(forms.Form):
         label="Anything I should know?",
         help_text="Interests, mobility needs, children's ages.",
     )
-    privacy_consent = forms.BooleanField(
-        label="I accept the privacy policy and booking terms."
-    )
+    privacy_consent = forms.BooleanField(label="I accept the privacy policy and booking terms.")
 
     # Tours
     meeting_point = forms.CharField(

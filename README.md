@@ -61,6 +61,13 @@ awaiting_payment ──paid──> pending ──guide confirms──> confirmed
 
 (instant services skip `pending`; services without a deposit skip `awaiting_payment`.)
 
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`): lint (ruff) and tests on every push and pull
+request; pushes to `develop`/`main` build an image to GHCR tagged `sha-<commit>`; pushes to
+`main` deploy it with health check and automatic rollback once `DEPLOY_ENABLED` is set.
+Before pushing, run locally: `ruff check . && ruff format --check . && pytest`.
+
 ## Production
 
 See [deploy/DEPLOY.md](deploy/DEPLOY.md): Hetzner Cloud server, Docker Compose with

@@ -1,11 +1,13 @@
-# Production stack. Run from the deploy/ folder:
+# Production stack. Normally started by deploy/deploy.sh with an image built by CI:
+#   ./deploy.sh sha-1a2b3c4
+# Without CI (first start, or building on the server):
 #   docker compose -f docker-compose.prod.yml up -d --build
-# Values like ${DOMAIN} come from deploy/.env (copy .env.example).
+# Values like ${DOMAIN} and ${IMAGE_TAG} come from deploy/.env (copy .env.example).
 
 x-app: &app
   build:
     context: ..
-  image: oxi-site:latest
+  image: ${IMAGE:-oxi-site}:${IMAGE_TAG:-latest}
   env_file: .env
   environment:
     SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in deploy/.env}
@@ -51,8 +53,8 @@ services:
       - static:/app/staticfiles
       - media:/app/media
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"]
-      interval: 30s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/', timeout=5)"]
+      interval: 10s
       timeout: 10s
       start_period: 60s
       retries: 3

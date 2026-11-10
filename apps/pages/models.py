@@ -89,9 +89,7 @@ class HomePage(Page):
             [FieldPanel("about_heading"), FieldPanel("about_text"), FieldPanel("about_page")],
             heading="About teaser",
         ),
-        MultiFieldPanel(
-            [FieldPanel("reviews_heading"), FieldPanel("reviews")], heading="Reviews"
-        ),
+        MultiFieldPanel([FieldPanel("reviews_heading"), FieldPanel("reviews")], heading="Reviews"),
     ]
 
     def get_context(self, request, *args, **kwargs):
