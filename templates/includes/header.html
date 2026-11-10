@@ -1,0 +1,23 @@
+{% load wagtailcore_tags site_tags %}
+<header class="site-header">
+  <div class="wrap site-header__inner">
+    <a class="brand" href="{% home_url %}">{{ settings.pages.SiteSettings.brand_name }}</a>
+    {% menu_pages as items %}
+    <nav class="nav" aria-label="Main">
+      <details class="nav__toggle">
+        <summary>Menu</summary>
+        <ul class="nav__list">
+          {% for item in items %}
+            <li><a href="{% pageurl item %}"{% if page and page.pk == item.pk %} aria-current="page"{% endif %}>{{ item.title }}</a></li>
+          {% endfor %}
+        </ul>
+      </details>
+      <ul class="nav__list nav__list--wide">
+        {% for item in items %}
+          <li><a href="{% pageurl item %}"{% if page and page.pk == item.pk %} aria-current="page"{% endif %}>{{ item.title }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+    <a class="button button--book" href="{% url 'book' %}">Book a date</a>
+  </div>
+</header>

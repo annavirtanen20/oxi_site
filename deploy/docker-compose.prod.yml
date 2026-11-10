@@ -1,0 +1,92 @@
+# Production stack. Run from the deploy/ folder:
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Values like ${DOMAIN} come from deploy/.env (copy .env.example).
+
+x-app: &app
+  build:
+    context: ..
+  image: oxi-site:latest
+  env_file: .env
+  environment:
+    SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in deploy/.env}
+    DATABASE_URL: postgres://oxi:${POSTGRES_PASSWORD}@db:5432/oxi
+    ALLOWED_HOSTS: ${DOMAIN},www.${DOMAIN},127.0.0.1,localhost
+    CSRF_TRUSTED_ORIGINS: https://${DOMAIN},https://www.${DOMAIN}
+    SITE_URL: https://${DOMAIN}
+    DEBUG: "False"
+    STATIC_MANIFEST: "True"
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: unless-stopped
+  logging: &logging
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: oxi
+      POSTGRES_USER: oxi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oxi -d oxi"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  web:
+    <<: *app
+    # Apply migrations and refresh static files on every start, then serve.
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput -v0 &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000
+             --workers 3 --timeout 30 --access-logfile -"
+    volumes:
+      - static:/app/staticfiles
+      - media:/app/media
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  worker:
+    <<: *app
+    command: python manage.py run_scheduler
+    depends_on:
+      web:
+        condition: service_started
+
+  caddy:
+    image: caddy:2
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in deploy/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - static:/srv/static:ro
+      - media:/srv/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata:
+  static:
+  media:
+  caddy_data:
+  caddy_config:

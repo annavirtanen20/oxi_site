@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+{% block content %}
+<section class="section section--first">
+  <div class="wrap split split--photo-left">
+    {% include "includes/arch_photo.html" with image=page.photo alt=page.title %}
+    <div>
+      <h1 class="page-heading">{{ page.title }}</h1>
+      {% if page.intro %}<p class="lead">{{ page.intro }}</p>{% endif %}
+      {% if page.facts.all %}
+        <dl class="facts">
+          {% for fact in page.facts.all %}
+            <div class="facts__row"><dt>{{ fact.label }}</dt><dd>{{ fact.value }}</dd></div>
+          {% endfor %}
+        </dl>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% if page.body %}
+<section class="section">
+  <div class="wrap prose prose--column">
+    {% for block in page.body %}{% include_block block %}{% endfor %}
+  </div>
+</section>
+{% endif %}
+<section class="section section--closing">
+  <div class="wrap closing">
+    <p class="closing__text">Want to plan a day together?</p>
+    <a class="button button--book button--large" href="{% url 'book' %}">Book a date</a>
+  </div>
+</section>
+{% endblock %}

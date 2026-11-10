@@ -1,0 +1,11 @@
+{% load wagtailimages_tags %}
+<figure class="arch{% if small %} arch--small{% endif %}">
+  <div class="arch__frame">
+    {% if image %}
+      {% image image fill-720x900 format-webp as img %}
+      <img src="{{ img.url }}" width="{{ img.width }}" height="{{ img.height }}" alt="{{ alt|default:image.title }}"{% if lazy %} loading="lazy"{% endif %}>
+    {% else %}
+      <div class="arch__placeholder">Add a photo in the CMS</div>
+    {% endif %}
+  </div>
+</figure>

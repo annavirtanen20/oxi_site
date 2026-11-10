@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section section--first">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ page.url }}">{{ page.title }}</a></p>
+    <div class="split{% if service.image %} split--photo-right{% endif %}">
+      <div>
+        <h1 class="page-heading">{{ service.name }}</h1>
+        {% if service.short_description %}<p class="lead">{{ service.short_description }}</p>{% endif %}
+        <dl class="facts">
+          <div class="facts__row"><dt>Duration</dt><dd>{{ service.duration_label }}</dd></div>
+          <div class="facts__row"><dt>Price</dt><dd>{{ service.price_label }}</dd></div>
+          <div class="facts__row"><dt>Group</dt><dd>Up to {{ service.max_group_size }} people</dd></div>
+          <div class="facts__row"><dt>Confirmation</dt><dd>{% if service.requires_manual_confirmation %}I confirm personally, usually within a few hours{% else %}Instant{% endif %}</dd></div>
+        </dl>
+        <a class="button button--book button--large" href="{% url 'book_time' service.slug %}">{% if service.kind == "airport" %}Book a pickup{% else %}Choose a date{% endif %}</a>
+      </div>
+      {% if service.image %}{% include "includes/arch_photo.html" with image=service.image alt=service.name small=True %}{% endif %}
+    </div>
+  </div>
+</section>
+{% if service.description or service.includes_list %}
+<section class="section">
+  <div class="wrap split split--text">
+    {% if service.description %}<div class="prose">{{ service.description|linebreaks }}</div>{% endif %}
+    {% if service.includes_list %}
+      <div>
+        <h2 class="subheading">What's included</h2>
+        <ul class="ticks">{% for item in service.includes_list %}<li>{{ item }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

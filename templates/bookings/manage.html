@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Your booking | {{ settings.pages.SiteSettings.brand_name }}{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="section section--first">
+  <div class="wrap wizard">
+    <div class="status status--{{ booking.status }}">
+      {% if booking.status == "pending" %}
+        <h1 class="page-heading page-heading--small">{% if just_created %}Request sent{% else %}Waiting for confirmation{% endif %}</h1>
+        <p>I'll confirm by email, usually within a few hours. The time is held for you until then.</p>
+      {% elif booking.status == "confirmed" %}
+        <h1 class="page-heading page-heading--small">Booking confirmed</h1>
+        <p>See you there. A reminder comes the day before.</p>
+      {% elif booking.status == "awaiting_payment" %}
+        <h1 class="page-heading page-heading--small">Deposit needed</h1>
+        <p>The time is held while you pay the deposit of €{{ booking.deposit_amount }}.</p>
+      {% elif booking.status == "completed" %}
+        <h1 class="page-heading page-heading--small">Thanks for the day together</h1>
+      {% elif booking.status == "cancelled" %}
+        <h1 class="page-heading page-heading--small">Booking cancelled</h1>
+        <p>The time is released. You're welcome to book another date.</p>
+      {% elif booking.status == "rejected" %}
+        <h1 class="page-heading page-heading--small">This date isn't possible</h1>
+        <p>Sorry, I can't take this booking. Please choose another time or send me a message.</p>
+      {% elif booking.status == "expired" %}
+        <h1 class="page-heading page-heading--small">Request expired</h1>
+        <p>The request wasn't confirmed in time, so the slot was released. Please book again.</p>
+      {% endif %}
+    </div>
+
+    <div class="split split--form">
+      <div class="panel">
+        <h2 class="subheading">{{ booking.service.name }}</h2>
+        <dl class="facts">
+          <div class="facts__row"><dt>Date</dt><dd>{{ booking.start|date:"l, j F Y" }}</dd></div>
+          <div class="facts__row"><dt>Time</dt><dd>{{ booking.start|time:"H:i" }} to {{ booking.end|time:"H:i" }}, Malta time</dd></div>
+          <div class="facts__row"><dt>People</dt><dd>{{ booking.party_size }}</dd></div>
+          {% if booking.details.flight_number %}<div class="facts__row"><dt>Flight</dt><dd>{{ booking.details.flight_number }}</dd></div>{% endif %}
+          {% if booking.details.meeting_point %}<div class="facts__row"><dt>Meeting point</dt><dd>{{ booking.details.meeting_point }}</dd></div>{% endif %}
+          {% if booking.price_total %}<div class="facts__row"><dt>Price</dt><dd>€{{ booking.price_total }}</dd></div>{% endif %}
+          <div class="facts__row"><dt>Booked by</dt><dd>{{ booking.client.name }}</dd></div>
+        </dl>
+      </div>
+
+      {% if booking.is_active %}
+        <aside class="summary">
+          <h2 class="subheading">Need to change plans?</h2>
+          {% if free_cancellation %}
+            <p>You can cancel free of charge until {{ policy.free_cancellation_label }} before the start.</p>
+          {% else %}
+            <p>It's less than {{ policy.free_cancellation_label }} before the start, so the deposit is not refundable. Message me if something came up.</p>
+          {% endif %}
+          <form method="post" action="{% url 'booking_cancel' booking.manage_token %}" class="summary__form" onsubmit="return confirm('Cancel this booking?');">
+            {% csrf_token %}
+            <button class="button button--quiet" type="submit">Cancel booking</button>
+          </form>
+          {% if settings.pages.SiteSettings.whatsapp_url %}<p><a href="{{ settings.pages.SiteSettings.whatsapp_url }}" target="_blank" rel="noopener">Ask to move the date on WhatsApp</a></p>{% endif %}
+        </aside>
+      {% endif %}
+    </div>
+    <p class="note">Keep this page's link: it's how you can check or cancel the booking.</p>
+  </div>
+</section>
+{% endblock %}

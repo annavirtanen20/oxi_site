@@ -1,0 +1,11 @@
+<h2 class="slots__title">{{ day|date:"l, j F" }}</h2>
+{% if slots %}
+  <ul class="slots__list">
+    {% for s in slots %}
+      <li><a class="slot" href="{% url 'book_details' service.slug %}?start={{ s.isoformat|urlencode }}">{{ s|time:"H:i" }}</a></li>
+    {% endfor %}
+  </ul>
+  <p class="slots__hint">Ends about {{ service.duration_label }} later. Times are Malta time.</p>
+{% else %}
+  <p class="slots__hint">This day has just filled up. Please pick another one.</p>
+{% endif %}

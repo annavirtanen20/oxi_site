@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Choose a time: {{ service.name }} | {{ settings.pages.SiteSettings.brand_name }}{% endblock %}
+{% block content %}
+<section class="section section--first">
+  <div class="wrap wizard">
+    {% include "bookings/_steps.html" with step=2 %}
+    <h1 class="page-heading">{{ service.name }}</h1>
+    <p class="lead lead--small">{{ service.duration_label }}, {{ service.price_label|lower }}. <a href="{% url 'book' %}">Change service</a></p>
+
+    <div class="picker">
+      <div class="calendar">
+        <div class="calendar__head">
+          {% if prev_month %}<a class="calendar__nav" href="?month={{ prev_month|date:'Y-m' }}" aria-label="Previous month">‹</a>{% else %}<span class="calendar__nav" aria-hidden="true"></span>{% endif %}
+          <h2 class="calendar__title">{{ month|date:"F Y" }}</h2>
+          {% if next_month %}<a class="calendar__nav" href="?month={{ next_month|date:'Y-m' }}" aria-label="Next month">›</a>{% else %}<span class="calendar__nav" aria-hidden="true"></span>{% endif %}
+        </div>
+        <table class="calendar__grid">
+          <thead><tr>{% for d in "MTWTFSS" %}<th scope="col">{{ d }}</th>{% endfor %}</tr></thead>
+          <tbody>
+            {% for week in weeks %}
+              <tr>
+                {% for cell in week %}
+                  <td>
+                    {% if cell.in_month %}
+                      {% if cell.free %}
+                        <a class="day day--free{% if day == cell.date %} day--selected{% endif %}"
+                           href="?month={{ month|date:'Y-m' }}&date={{ cell.date|date:'Y-m-d' }}#slots"
+                           hx-get="{% url 'book_slots' service.slug %}?date={{ cell.date|date:'Y-m-d' }}"
+                           hx-target="#slots"
+                           hx-push-url="?month={{ month|date:'Y-m' }}&date={{ cell.date|date:'Y-m-d' }}"
+                           aria-label="{{ cell.date|date:'l j F' }}, free times available"
+                           {% if day == cell.date %}aria-current="date"{% endif %}>{{ cell.date.day }}</a>
+                      {% else %}
+                        <span class="day">{{ cell.date.day }}</span>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="calendar__legend"><span class="day day--free day--legend"></span> free times on this day</p>
+      </div>
+
+      <div id="slots" class="slots" aria-live="polite">
+        {% if day %}
+          {% include "bookings/_slots.html" %}
+        {% else %}
+          <p class="slots__hint">Pick a highlighted day to see free start times.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+  // Keep the selected-day highlight in sync after an HTMX swap.
+  document.addEventListener("htmx:afterRequest", function (e) {
+    var link = e.detail.elt;
+    if (!link.classList || !link.classList.contains("day")) return;
+    document.querySelectorAll(".day--selected").forEach(function (el) {
+      el.classList.remove("day--selected"); el.removeAttribute("aria-current");
+    });
+    link.classList.add("day--selected"); link.setAttribute("aria-current", "date");
+  });
+</script>
+{% endblock %}

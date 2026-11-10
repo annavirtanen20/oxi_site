@@ -1,0 +1,23 @@
+{% extends "wagtailadmin/generic/inspect.html" %}
+
+{% block main_content %}
+  {{ block.super }}
+  <h2 class="w-h3">Bookings</h2>
+  {% if bookings %}
+    <table class="listing">
+      <thead><tr><th>When</th><th>Service</th><th>People</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for b in bookings %}
+          <tr>
+            <td><a href="{% url booking_url_name b.pk %}">{{ b.when }}</a></td>
+            <td>{{ b.service }}</td>
+            <td>{{ b.party_size }}</td>
+            <td>{{ b.get_status_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No bookings yet.</p>
+  {% endif %}
+{% endblock %}

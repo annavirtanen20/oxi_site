@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+{% block body_class %}page-home{% endblock %}
+{% block title %}{{ page.seo_title|default:page.hero_heading }} | {{ settings.pages.SiteSettings.brand_name }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="wrap hero__inner">
+    <div class="hero__text">
+      <h1 class="hero__heading">{{ page.hero_heading }}</h1>
+      {% if page.hero_text %}<p class="hero__lead">{{ page.hero_text|linebreaksbr }}</p>{% endif %}
+      <div class="hero__actions">
+        <a class="button button--book button--large" href="{% url 'book' %}">See free dates</a>
+        {% if settings.pages.SiteSettings.whatsapp_url %}
+          <a class="link-quiet" href="{{ settings.pages.SiteSettings.whatsapp_url }}" target="_blank" rel="noopener">Ask a question on WhatsApp</a>
+        {% endif %}
+      </div>
+    </div>
+    {% include "includes/arch_photo.html" with image=page.hero_image alt=settings.pages.SiteSettings.brand_name %}
+  </div>
+</section>
+
+<section class="section" id="services">
+  <div class="wrap">
+    <h2 class="section__heading">{{ page.services_heading }}</h2>
+    {% if page.services_intro %}<p class="section__intro">{{ page.services_intro }}</p>{% endif %}
+    <ul class="price-list">
+      {% for service in services %}
+        {% include "includes/service_row.html" %}
+      {% empty %}
+        <li class="empty">Services will appear here once they are added in the CMS.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+
+{% if page.about_heading or page.about_text %}
+<section class="section section--stone">
+  <div class="wrap{% if page.about_page.specific.photo %} split{% endif %}">
+    <div>
+      <h2 class="section__heading">{{ page.about_heading }}</h2>
+      <div class="prose">{{ page.about_text|richtext }}</div>
+      {% if page.about_page %}<p><a class="link-strong" href="{% pageurl page.about_page %}">More about me and my experience</a></p>{% endif %}
+    </div>
+    {% if page.about_page.specific.photo %}
+      {% include "includes/arch_photo.html" with image=page.about_page.specific.photo small=True lazy=True %}
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if page.reviews %}
+<section class="section">
+  <div class="wrap">
+    <h2 class="section__heading">{{ page.reviews_heading }}</h2>
+    <div class="reviews">
+      {% for block in page.reviews %}{% include_block block %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section section--closing">
+  <div class="wrap closing">
+    <p class="closing__text">Pick a service, choose a free time, and I'll confirm within a day.</p>
+    <a class="button button--book button--large" href="{% url 'book' %}">Book a date</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+{% block content %}
+<section class="section section--first">
+  <div class="wrap prose prose--column">
+    <h1 class="page-heading">{{ page.title }}</h1>
+    {{ page.body|richtext }}
+  </div>
+</section>
+{% endblock %}

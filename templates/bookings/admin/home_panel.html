@@ -1,0 +1,40 @@
+{% load wagtailadmin_tags %}
+{% if pending %}
+  {% with heading="Needs your answer ("|add:pending_count|add:")" %}
+  {% panel id="bookings-pending" heading=heading classname="w-panel--dashboard" %}
+    <table class="listing listing--dashboard">
+      <thead><tr><th>When</th><th>Service</th><th>Client</th><th>People</th><th>Expires</th></tr></thead>
+      <tbody>
+        {% for b in pending %}
+          <tr>
+            <td><a href="{% url 'booking:inspect' b.pk %}">{{ b.when }}</a></td>
+            <td>{{ b.service }}</td>
+            <td>{{ b.client.name }}</td>
+            <td>{{ b.party_size }}</td>
+            <td>{{ b.expires_at|date:"D H:i" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endpanel %}
+  {% endwith %}
+{% endif %}
+
+{% panel id="bookings-upcoming" heading="Coming up in the next 7 days" classname="w-panel--dashboard" %}
+  {% if upcoming %}
+    <table class="listing listing--dashboard">
+      <tbody>
+        {% for b in upcoming %}
+          <tr>
+            <td><a href="{% url 'booking:inspect' b.pk %}">{{ b.when }}</a></td>
+            <td>{{ b.service }}</td>
+            <td>{{ b.client.name }}, {{ b.party_size }} people</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>Nothing confirmed for the next 7 days.{% if not pending %} No requests are waiting for you either.{% endif %}</p>
+  {% endif %}
+  <p><a href="{{ index_url }}">All bookings</a></p>
+{% endpanel %}

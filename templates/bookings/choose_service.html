@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Book a date | {{ settings.pages.SiteSettings.brand_name }}{% endblock %}
+{% block content %}
+<section class="section section--first">
+  <div class="wrap wizard">
+    {% include "bookings/_steps.html" with step=1 %}
+    <h1 class="page-heading">What would you like to book?</h1>
+    <ul class="choice-list">
+      {% for service in services %}
+        <li>
+          <a class="choice" href="{% url 'book_time' service.slug %}">
+            <span class="choice__name">{{ service.name }}</span>
+            {% if service.short_description %}<span class="choice__desc">{{ service.short_description }}</span>{% endif %}
+            <span class="choice__meta">{{ service.duration_label }}, {{ service.price_label|lower }}</span>
+          </a>
+        </li>
+      {% empty %}
+        <li class="empty">Online booking opens soon. Meanwhile, send a message and I'll check the date for you.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

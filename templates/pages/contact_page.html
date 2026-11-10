@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+{% with s=settings.pages.SiteSettings %}
+<section class="section section--first">
+  <div class="wrap split split--text">
+    <div>
+      <h1 class="page-heading">{{ page.title }}</h1>
+      {% if page.intro %}<p class="lead">{{ page.intro }}</p>{% endif %}
+      <ul class="contact-ways">
+        {% if s.whatsapp_url %}<li><a href="{{ s.whatsapp_url }}" target="_blank" rel="noopener">WhatsApp</a><span>fastest reply</span></li>{% endif %}
+        {% if s.telegram_url %}<li><a href="{{ s.telegram_url }}" target="_blank" rel="noopener">Telegram</a><span>@{{ s.telegram_username }}</span></li>{% endif %}
+        {% if s.email %}<li><a href="mailto:{{ s.email }}">{{ s.email }}</a><span>email</span></li>{% endif %}
+        {% if s.phone %}<li><a href="tel:{{ s.phone|cut:' ' }}">{{ s.phone }}</a><span>phone</span></li>{% endif %}
+      </ul>
+      <p class="note">I work across {{ s.service_area }}.</p>
+    </div>
+    <div class="panel">
+      {% if sent %}
+        <p class="message message--success" role="status">{{ page.thank_you_text }}</p>
+      {% else %}
+        <h2 class="subheading">Send a message</h2>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% include "includes/form_errors.html" %}
+          {% for field in form.visible_fields %}{% include "includes/field.html" %}{% endfor %}
+          {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+          <button class="button button--book" type="submit">Send message</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endwith %}
+{% endblock %}

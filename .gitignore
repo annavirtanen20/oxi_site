@@ -1,0 +1,21 @@
+# Secrets: local and production settings (only the *.example files are committed)
+.env
+deploy/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Generated and uploaded files
+staticfiles/
+media/
+backups/
+*.log
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store

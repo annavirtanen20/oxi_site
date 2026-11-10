@@ -1,0 +1,5 @@
+{% load wagtailcore_tags %}
+<details class="faq__item">
+  <summary>{{ value.question }}</summary>
+  <div class="prose">{{ value.answer|richtext }}</div>
+</details>

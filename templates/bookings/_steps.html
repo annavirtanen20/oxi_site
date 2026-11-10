@@ -1,0 +1,5 @@
+<ol class="steps" aria-label="Booking steps">
+  <li{% if step == 1 %} aria-current="step"{% elif step > 1 %} class="done"{% endif %}><span>1</span>Service</li>
+  <li{% if step == 2 %} aria-current="step"{% elif step > 2 %} class="done"{% endif %}><span>2</span>{% if service and service.kind == "airport" %}Flight{% else %}Date and time{% endif %}</li>
+  <li{% if step == 3 %} aria-current="step"{% endif %}><span>3</span>Your details</li>
+</ol>

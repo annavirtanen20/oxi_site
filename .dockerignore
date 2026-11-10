@@ -1,0 +1,10 @@
+.git
+.env
+deploy/.env
+**/__pycache__
+*.pyc
+.pytest_cache
+.venv
+staticfiles
+media
+backups

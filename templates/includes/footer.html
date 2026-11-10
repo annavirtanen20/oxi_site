@@ -1,0 +1,24 @@
+{% load site_tags %}
+{% with s=settings.pages.SiteSettings %}
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div>
+      <p class="site-footer__brand">{{ s.brand_name }}</p>
+      {% if s.licence_note %}<p>{{ s.licence_note }}</p>{% endif %}
+      <p>Working across {{ s.service_area }}. All times are Malta time.</p>
+    </div>
+    <ul class="site-footer__contacts">
+      {% if s.email %}<li><a href="mailto:{{ s.email }}">{{ s.email }}</a></li>{% endif %}
+      {% if s.phone %}<li><a href="tel:{{ s.phone|cut:' ' }}">{{ s.phone }}</a></li>{% endif %}
+      {% if s.whatsapp_url %}<li><a href="{{ s.whatsapp_url }}" rel="noopener" target="_blank">WhatsApp</a></li>{% endif %}
+      {% if s.telegram_url %}<li><a href="{{ s.telegram_url }}" rel="noopener" target="_blank">Telegram</a></li>{% endif %}
+    </ul>
+    <ul class="site-footer__legal">
+      {% page_url_by_type "standardpage:privacy" as privacy_url %}
+      {% page_url_by_type "standardpage:terms" as terms_url %}
+      {% if privacy_url %}<li><a href="{{ privacy_url }}">Privacy policy</a></li>{% endif %}
+      {% if terms_url %}<li><a href="{{ terms_url }}">Booking terms</a></li>{% endif %}
+    </ul>
+  </div>
+</footer>
+{% endwith %}

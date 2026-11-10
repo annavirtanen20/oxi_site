@@ -1,0 +1,72 @@
+{% extends "wagtailadmin/generic/base.html" %}
+{% load wagtailadmin_tags %}
+
+{% block main_content %}
+<div class="booking-card">
+  <p class="booking-card__status booking-card__status--{{ booking.status }}">
+    <strong class="booking-card__badge">{{ booking.get_status_display }}</strong>
+    {% if booking.expires_at %}<span class="help">Expires {{ booking.expires_at|date:"D d M, H:i" }} if not answered.</span>{% endif %}
+  </p>
+
+  {% if actions %}
+    <div class="booking-card__actions">
+      {% for action in actions %}
+        <form method="post" action="{% url transition_url_name booking.pk action.status %}" class="booking-card__action">
+          {% csrf_token %}
+          <button type="submit" class="{{ action.classes }}"
+            {% if action.status == "rejected" or action.status == "cancelled" %}onclick="return confirm('{{ action.label }}? The client will see the change.');"{% endif %}>
+            {{ action.label }}
+          </button>
+        </form>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <dl class="booking-card__facts">
+    <dt>When</dt><dd>{{ booking.when }} (Malta time)</dd>
+    <dt>Service</dt><dd>{{ booking.service }}</dd>
+    <dt>Client</dt>
+    <dd>
+      <a href="{{ client_url }}">{{ booking.client.name }}</a>,
+      <a href="mailto:{{ booking.client.email }}">{{ booking.client.email }}</a>
+      {% if booking.client.phone %}, <a href="tel:{{ booking.client.phone|cut:' ' }}">{{ booking.client.phone }}</a>{% endif %}
+      {% if booking.client.messenger %} (prefers {{ booking.client.get_messenger_display }}){% endif %}
+    </dd>
+    <dt>People</dt><dd>{{ booking.party_size }}</dd>
+    {% for key, value in booking.details.items %}
+      <dt>{{ key|capfirst|cut:"_" }}</dt><dd>{{ value }}</dd>
+    {% endfor %}
+    {% if booking.comment %}<dt>Client's note</dt><dd style="white-space: pre-line">{{ booking.comment }}</dd>{% endif %}
+    <dt>Price</dt><dd>{% if booking.price_total %}€{{ booking.price_total }}{% else %}To agree with the client{% endif %}{% if booking.deposit_amount %}, deposit €{{ booking.deposit_amount }}{% endif %}</dd>
+    <dt>Booked</dt><dd>{{ booking.created_at|date:"D d M Y, H:i" }}</dd>
+  </dl>
+
+  <h2 class="w-h3">History</h2>
+  <table class="listing">
+    <thead><tr><th>When</th><th>Change</th><th>By</th><th>Note</th></tr></thead>
+    <tbody>
+      {% for event in events %}
+        <tr>
+          <td>{{ event.created_at|date:"d M Y, H:i" }}</td>
+          <td>{% if event.from_status %}{{ event.from_status }} → {% endif %}{{ event.to_status }}</td>
+          <td>{{ event.get_actor_display }}</td>
+          <td>{{ event.note }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .booking-card { max-width: 52rem; margin-top: 1.5rem; }
+  .booking-card__status { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; }
+  .booking-card__badge { font-size: 1.25rem; padding: .3rem .8rem; border-radius: .3rem; background: rgba(127,127,127,.12); border-left: 4px solid #a87b3a; }
+  .booking-card__status--confirmed .booking-card__badge, .booking-card__status--completed .booking-card__badge { border-left-color: #1d6a50; }
+  .booking-card__status--cancelled .booking-card__badge, .booking-card__status--rejected .booking-card__badge, .booking-card__status--expired .booking-card__badge { border-left-color: #b3122b; }
+  .booking-card__actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 2rem; }
+  .booking-card__action { margin: 0; }
+  .booking-card__facts { display: grid; grid-template-columns: 10rem 1fr; gap: .6rem 1.5rem; margin: 0 0 2.5rem; }
+  .booking-card__facts dt { font-weight: 600; }
+  .booking-card__facts dd { margin: 0; }
+</style>
+{% endblock %}

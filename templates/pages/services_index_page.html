@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section section--first">
+  <div class="wrap">
+    <h1 class="page-heading">{{ page.title }}</h1>
+    {% if page.intro %}<p class="lead">{{ page.intro }}</p>{% endif %}
+    <ul class="price-list">
+      {% for service in services %}
+        {% include "includes/service_row.html" with services_page=page %}
+      {% empty %}
+        <li class="empty">No services yet.</li>
+      {% endfor %}
+    </ul>
+    <p class="note">Prices are in euro. Entrance tickets and transport are not included unless listed.</p>
+  </div>
+</section>
+{% endblock %}

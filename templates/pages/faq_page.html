@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+{% block content %}
+<section class="section section--first">
+  <div class="wrap prose--column">
+    <h1 class="page-heading">{{ page.title }}</h1>
+    {% if page.intro %}<p class="lead">{{ page.intro }}</p>{% endif %}
+    <div class="faq">
+      {% for block in page.questions %}{% include_block block %}{% endfor %}
+    </div>
+    {% if page.policies %}
+      <div class="policies prose" id="terms">{{ page.policies|richtext }}</div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

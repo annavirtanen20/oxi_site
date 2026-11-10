@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load site_tags %}
+{% block title %}Your details: {{ service.name }} | {{ settings.pages.SiteSettings.brand_name }}{% endblock %}
+{% block content %}
+<section class="section section--first">
+  <div class="wrap wizard">
+    {% include "bookings/_steps.html" with step=3 %}
+    <div class="split split--form">
+      <div class="panel">
+        <h1 class="page-heading page-heading--small">{% if service.kind == "airport" %}Flight and contact details{% else %}Your details{% endif %}</h1>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if start %}<input type="hidden" name="start" value="{{ start.isoformat }}">{% endif %}
+          {% include "includes/form_errors.html" %}
+          {% if form.slot_taken %}<p><a href="{% url 'book_time' service.slug %}">Choose another time</a></p>{% endif %}
+
+          {% if form.flight_number %}
+            <fieldset class="fieldset">
+              <legend>Your flight</legend>
+              {% include "includes/field.html" with field=form.flight_number %}
+              <div class="field-row">
+                {% include "includes/field.html" with field=form.arrival_date %}
+                {% include "includes/field.html" with field=form.arrival_time %}
+              </div>
+              {% include "includes/field.html" with field=form.name_on_sign %}
+              {% include "includes/field.html" with field=form.hotel %}
+            </fieldset>
+          {% endif %}
+
+          <fieldset class="fieldset">
+            <legend>Contact</legend>
+            {% include "includes/field.html" with field=form.name %}
+            {% include "includes/field.html" with field=form.email %}
+            <div class="field-row">
+              {% include "includes/field.html" with field=form.phone %}
+              {% include "includes/field.html" with field=form.messenger %}
+            </div>
+          </fieldset>
+
+          <fieldset class="fieldset">
+            <legend>Your group</legend>
+            {% include "includes/field.html" with field=form.party_size %}
+            {% if form.meeting_point %}{% include "includes/field.html" with field=form.meeting_point %}{% endif %}
+            {% include "includes/field.html" with field=form.comment %}
+          </fieldset>
+
+          {% page_url_by_type "standardpage:privacy" as privacy_url %}
+          {% include "includes/field.html" with field=form.privacy_consent %}
+          {% if privacy_url %}<p class="field__help"><a href="{{ privacy_url }}" target="_blank">Read the privacy policy</a></p>{% endif %}
+
+          <button class="button button--book button--large" type="submit">
+            {% if service.requires_manual_confirmation %}Send booking request{% else %}Book now{% endif %}
+          </button>
+          <p class="note">{% if service.requires_manual_confirmation %}Nothing is charged now. I'll confirm by email, usually within a few hours.{% else %}You'll get a confirmation by email right away.{% endif %}</p>
+        </form>
+      </div>
+
+      <aside class="summary" aria-label="Booking summary">
+        <h2 class="subheading">{{ service.name }}</h2>
+        <dl class="facts facts--compact">
+          {% if start %}
+            <div class="facts__row"><dt>Date</dt><dd>{{ start|date:"l, j F Y" }}</dd></div>
+            <div class="facts__row"><dt>Time</dt><dd>{{ start|time:"H:i" }}, about {{ service.duration_label }}</dd></div>
+          {% endif %}
+          <div class="facts__row"><dt>Price</dt><dd>{{ service.price_label }}</dd></div>
+        </dl>
+        {% if start %}<a href="{% url 'book_time' service.slug %}?month={{ start|date:'Y-m' }}&date={{ start|date:'Y-m-d' }}">Change time</a>{% endif %}
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,13 @@
+<li class="price-row">
+  <div class="price-row__main">
+    <h3 class="price-row__name">
+      {% if services_page %}<a href="{{ services_page.url }}{{ service.slug }}/">{{ service.name }}</a>{% else %}{{ service.name }}{% endif %}
+    </h3>
+    {% if service.short_description %}<p class="price-row__desc">{{ service.short_description }}</p>{% endif %}
+  </div>
+  <dl class="price-row__facts">
+    <div><dt>{% if service.kind == "airport" %}From landing{% else %}Duration{% endif %}</dt><dd>{{ service.duration_label }}</dd></div>
+    <div><dt>Price</dt><dd class="price-row__price">{{ service.price_label }}</dd></div>
+  </dl>
+  <a class="button button--small" href="{% url 'book_time' service.slug %}" aria-label="{% if service.price_type == 'on_request' %}Request{% else %}Book{% endif %} {{ service.name }}">{% if service.price_type == "on_request" %}Request{% else %}Book{% endif %}</a>
+</li>
