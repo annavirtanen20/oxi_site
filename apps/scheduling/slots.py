@@ -363,6 +363,13 @@ def upcoming_free_days(
     tz = business_tz()
     lo, hi = now + policy.min_notice, now + policy.horizon
     first = now.astimezone(tz).date()
+    last = first + timedelta(days=search_days - 1)
+
+    # Load working hours and busy time for the whole period once, then work per day
+    # in memory: a constant handful of queries however many days we have to look at.
+    period = Interval(local_midnight(first), local_midnight(last + timedelta(days=1)))
+    all_windows = working_windows(first - timedelta(days=1), last)
+    all_busy = busy_intervals(period)
 
     days = []
     for offset in range(search_days):
@@ -371,12 +378,9 @@ def upcoming_free_days(
         if day_start >= hi:
             break
         span = Interval(day_start, day_end)
-        windows = _clip(
-            working_windows(day - timedelta(days=1), day), max(day_start, lo), min(day_end, hi)
-        )
-        free = [
-            iv for iv in _subtract(windows, busy_intervals(span)) if iv.end - iv.start >= shortest
-        ]
+        windows = _clip(all_windows, max(day_start, lo), min(day_end, hi))
+        busy = [b for b in all_busy if b.overlaps(span)]
+        free = [iv for iv in _subtract(windows, busy) if iv.end - iv.start >= shortest]
         if not free:
             continue
         total = sum((iv.end - iv.start for iv in free), timedelta())

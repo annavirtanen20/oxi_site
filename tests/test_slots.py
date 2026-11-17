@@ -246,3 +246,25 @@ def test_no_free_days_without_active_services(hostess, weekdays_9_to_17, policy,
     hostess.is_active = False
     hostess.save()
     assert upcoming_free_days(now=now) == []
+
+
+def test_free_days_use_a_fixed_number_of_queries(
+    hostess, weekdays_9_to_17, policy, now, django_assert_max_num_queries
+):
+    # Found quickly, or after scanning the whole month: the query count is the same.
+    with django_assert_max_num_queries(5):
+        assert len(upcoming_free_days(now=now)) == 3
+    TimeOff.objects.create(start=malta(2026, 11, 9), end=malta(2026, 12, 31))
+    with django_assert_max_num_queries(5):
+        assert upcoming_free_days(now=now) == []
+
+
+def test_free_days_split_overnight_windows_at_midnight(hostess, policy, now):
+    # Friday 18:00–00:00 joins Saturday 00:00–03:00 into one window; the card
+    # still shows each day separately, and Saturday's 3 h is too short for a block.
+    WorkingHours.objects.create(weekday=4, start=time(18), end=time(0))
+    WorkingHours.objects.create(weekday=5, start=time(0), end=time(3))
+    days = upcoming_free_days(now=now)
+    assert [d["day"].isoformat() for d in days] == ["2026-11-13", "2026-11-20", "2026-11-27"]
+    assert _ranges(days[0]) == ["18:00-00:00"]
+    assert days[0]["hours"] == 6
