@@ -1,0 +1,19 @@
+{% if free_days %}
+<section class="free-days" aria-labelledby="free-days-title">
+  <div class="free-days__head">
+    <h2 class="free-days__title" id="free-days-title">Next free dates</h2>
+    <span class="free-days__note">Malta time</span>
+  </div>
+  <ul class="free-days__list">
+    {% for d in free_days %}
+      <li>
+        <a class="free-day" href="{% url 'book' %}">
+          <span class="free-day__date">{{ d.day|date:"D j M" }}</span>
+          <span class="free-day__bar" aria-hidden="true"><span style="width: {% widthratio d.hours 24 100 %}%"></span></span>
+          <span class="free-day__times">{% if d.all_day %}All day{% else %}{% for start, end in d.ranges %}{{ start|time:"H:i" }}–{% if end.hour == 0 and end.minute == 0 %}24:00{% else %}{{ end|time:"H:i" }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}

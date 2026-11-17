@@ -15,7 +15,7 @@
         </dl>
         <a class="button button--book button--large" href="{% url 'book_time' service.slug %}">Check free dates</a>
       </div>
-      {% if service.image %}{% include "includes/arch_photo.html" with image=service.image alt=service.name small=True %}{% endif %}
+      {% if service.image %}{% include "includes/photo.html" with image=service.image alt=service.name shape="square" %}{% endif %}
     </div>
   </div>
 </section>

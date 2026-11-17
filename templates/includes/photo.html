@@ -1,0 +1,9 @@
+{% load wagtailimages_tags %}{# Rounded photo; shape: "" (16:10), "portrait" (4:5) or "square" (4:3). #}
+<figure class="photo{% if shape %} photo--{{ shape }}{% endif %}">
+  {% if image %}
+    {% if shape == "portrait" %}{% image image fill-720x900 format-webp as img %}{% elif shape == "square" %}{% image image fill-960x720 format-webp as img %}{% else %}{% image image fill-1120x700 format-webp as img %}{% endif %}
+    <img src="{{ img.url }}" width="{{ img.width }}" height="{{ img.height }}" alt="{{ alt|default:image.title }}"{% if lazy %} loading="lazy"{% else %} fetchpriority="high"{% endif %}>
+  {% else %}
+    <div class="photo__placeholder">Add a photo in the CMS</div>
+  {% endif %}
+</figure>

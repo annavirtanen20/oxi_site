@@ -3,7 +3,7 @@
 {% block content %}
 <section class="section section--first">
   <div class="wrap split split--photo-left">
-    {% include "includes/arch_photo.html" with image=page.photo alt=page.title %}
+    {% include "includes/photo.html" with image=page.photo alt=page.title shape="portrait" %}
     <div>
       <h1 class="page-heading">{{ page.title }}</h1>
       {% if page.intro %}<p class="lead">{{ page.intro }}</p>{% endif %}
@@ -25,9 +25,11 @@
 </section>
 {% endif %}
 <section class="section section--closing">
-  <div class="wrap closing">
-    <p class="closing__text">Planning a group arrival or an event?</p>
-    <a class="button button--book button--large" href="{% url 'book' %}">Book a date</a>
+  <div class="wrap">
+    <div class="closing">
+      <p class="closing__text">Planning a group arrival or an event?</p>
+      <a class="button button--book button--large" href="{% url 'book' %}">Book a date</a>
+    </div>
   </div>
 </section>
 {% endblock %}

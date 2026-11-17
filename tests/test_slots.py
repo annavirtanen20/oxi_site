@@ -10,6 +10,7 @@ from apps.scheduling.slots import (
     available_ends,
     available_starts,
     day_timeline,
+    upcoming_free_days,
 )
 
 from .conftest import hhmm, malta
@@ -199,3 +200,49 @@ def test_timeline_and_month_view(hostess, weekdays_9_to_17, policy, now):
     assert free == ["09", "10", "11", "12", "13", "14", "15", "16"]
     days = available_days(hostess, malta(2026, 11, 9).date(), malta(2026, 11, 15).date(), now=now)
     assert [d.day for d in days] == [10, 11, 12, 13]  # Mon is too soon, weekend closed
+
+
+# --- next free dates card ---------------------------------------------------------
+
+
+def _ranges(day):
+    return [f"{s:%H:%M}-{e:%H:%M}" for s, e in day["ranges"]]
+
+
+def test_free_days_start_after_min_notice(hostess, weekdays_9_to_17, policy, now):
+    # Monday 08:00 + 24 h notice: Monday is gone, Tuesday is the first free day.
+    days = upcoming_free_days(now=now)
+    assert [d["day"].isoformat() for d in days] == ["2026-11-10", "2026-11-11", "2026-11-12"]
+    assert _ranges(days[0]) == ["09:00-17:00"]
+    assert days[0]["hours"] == 8
+    assert not days[0]["all_day"]
+
+
+def test_free_days_skip_days_without_room_for_a_block(
+    hostess, weekdays_9_to_17, policy, now, client_data
+):
+    # 11:00–15:00 taken on Wednesday leaves 2 h on each side: too short for a 4 h block.
+    book(hostess, malta(2026, 11, 11, 11), malta(2026, 11, 11, 15), client_data, now)
+    days = upcoming_free_days(now=now)
+    assert [d["day"].isoformat() for d in days] == ["2026-11-10", "2026-11-12", "2026-11-13"]
+
+
+def test_free_days_show_split_ranges(hostess, weekdays_9_to_17, policy, now):
+    TimeOff.objects.create(start=malta(2026, 11, 10, 9), end=malta(2026, 11, 10, 10))
+    WorkingHours.objects.filter(weekday=1).update(end=time(22))
+    TimeOff.objects.create(start=malta(2026, 11, 10, 14), end=malta(2026, 11, 10, 17))
+    days = upcoming_free_days(now=now, count=1)
+    assert _ranges(days[0]) == ["10:00-14:00", "17:00-22:00"]
+    assert days[0]["hours"] == 9
+
+
+def test_free_days_mark_whole_days(hostess, round_the_clock, policy, now):
+    tue, wed = upcoming_free_days(now=now, count=2)
+    assert not tue["all_day"]  # free only from 08:00, after the notice period
+    assert wed["all_day"]
+
+
+def test_no_free_days_without_active_services(hostess, weekdays_9_to_17, policy, now):
+    hostess.is_active = False
+    hostess.save()
+    assert upcoming_free_days(now=now) == []
