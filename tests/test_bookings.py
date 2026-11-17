@@ -23,125 +23,127 @@ from .conftest import malta
 
 pytestmark = pytest.mark.django_db
 
-WED_11 = malta(2026, 11, 11, 11)
+START = malta(2026, 11, 11, 9)  # Wednesday
+END = malta(2026, 11, 11, 13)
 
 
-def test_manual_service_creates_pending_request(tour, weekdays_9_to_17, policy, now, client_data):
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, party_size=2, now=now)
+@pytest.fixture
+def make(hostess, weekdays_9_to_17, policy, now, client_data):
+    """make(start_h, end_h, day=11, **kwargs) -> Booking for the hostess service."""
+
+    def _make(start_h=9, end_h=13, day=11, service=None, **kwargs):
+        kwargs.setdefault("client_data", client_data)
+        kwargs.setdefault("now", now)
+        return create_booking(
+            service=service or hostess,
+            start=malta(2026, 11, day, start_h),
+            end=malta(2026, 11, day, end_h),
+            **kwargs,
+        )
+
+    return _make
+
+
+def test_request_is_pending_and_priced_by_hours(make, policy, now):
+    b = make(9, 15, party_size=2)
     assert b.status == Booking.Status.PENDING
-    assert b.end == WED_11 + timedelta(hours=2)
+    assert b.end - b.start == timedelta(hours=6)
+    assert b.price_total == Decimal("180.00")  # 6 h x €30
     assert b.expires_at == now + policy.pending_ttl
-    assert b.price_total == Decimal("120")
     assert len(b.manage_token) >= 40
     assert b.client.privacy_consent_at == now
     assert list(b.events.values_list("to_status", flat=True)) == ["pending"]
 
 
-def test_instant_service_is_confirmed_immediately(tour, weekdays_9_to_17, policy, now, client_data):
-    tour.confirmation_mode = "instant"
-    tour.save()
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
+def test_company_marks_client_as_agency(make):
+    b = make()
+    assert b.client.company == "Island Events Ltd"
+    assert b.client.kind == Client.Kind.AGENCY
+
+
+def test_instant_service_is_confirmed_immediately(make, hostess, now):
+    hostess.confirmation_mode = "instant"
+    hostess.save()
+    b = make()
     assert b.status == Booking.Status.CONFIRMED
     assert b.confirmed_at == now and b.expires_at is None
 
 
-def test_price_on_request_forces_manual(tour, weekdays_9_to_17, policy, now, client_data):
-    tour.confirmation_mode = "instant"
-    tour.price_type = "on_request"
-    tour.deposit_percent = 30
-    tour.save()
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
+def test_price_on_request_forces_manual(make, hostess):
+    hostess.confirmation_mode = "instant"
+    hostess.price_type = "on_request"
+    hostess.deposit_percent = 30
+    hostess.save()
+    b = make()
     assert b.status == Booking.Status.PENDING
     assert b.price_total is None and b.deposit_amount is None
 
 
-def test_deposit_flow(tour, weekdays_9_to_17, policy, now, client_data):
-    tour.deposit_percent = 30
-    tour.price_type = "per_person"
-    tour.price = Decimal("45")
-    tour.save()
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, party_size=3, now=now)
+def test_deposit_flow(make, hostess, policy, now):
+    hostess.deposit_percent = 30
+    hostess.save()
+    b = make(9, 14)  # 5 h x €30 = €150
     assert b.status == Booking.Status.AWAITING_PAYMENT
-    assert b.price_total == Decimal("135")
-    assert b.deposit_amount == Decimal("40.50")
+    assert b.price_total == Decimal("150.00")
+    assert b.deposit_amount == Decimal("45.00")
     assert b.expires_at == now + policy.payment_ttl
     b = mark_deposit_paid(b, now=now)
     assert b.status == Booking.Status.PENDING
     assert b.expires_at == now + policy.pending_ttl
 
 
-def test_same_slot_cannot_be_booked_twice(tour, weekdays_9_to_17, policy, now, client_data):
-    create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
-    other = {**client_data, "email": "bob@example.com"}
+def test_overlapping_block_is_refused(make, client_data):
+    make(9, 13)
     with pytest.raises(SlotUnavailable):
-        create_booking(service=tour, start=malta(2026, 11, 11, 12), client_data=other, now=now)
+        make(12, 16, client_data={**client_data, "email": "bob@example.com"})
 
 
-def test_database_rejects_overlap_even_without_checks(
-    tour, weekdays_9_to_17, policy, now, client_data
-):
+def test_database_rejects_overlap_even_without_checks(make, hostess):
     """Simulates two concurrent requests that both passed the availability check."""
-    first = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
+    first = make(9, 13)
     clash = Booking(
-        service=tour,
+        service=hostess,
         client=first.client,
         status=Booking.Status.PENDING,
         start=malta(2026, 11, 11, 12),
-        end=malta(2026, 11, 11, 14),
+        end=malta(2026, 11, 11, 16),
     )
     with pytest.raises(IntegrityError, match="booking_no_overlap"):
         with transaction.atomic():
             clash.save()
 
 
-def test_race_is_reported_as_slot_unavailable(
-    tour, weekdays_9_to_17, policy, now, client_data, monkeypatch
-):
-    create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
-    # Pretend the availability check passed (as in a real race).
+def test_race_is_reported_as_slot_unavailable(make, client_data, monkeypatch):
+    make(9, 13)
     monkeypatch.setattr("apps.bookings.services.availability_problem", lambda *a, **k: None)
     with pytest.raises(SlotUnavailable, match="just been taken"):
-        create_booking(
-            service=tour,
-            start=WED_11,
-            client_data={**client_data, "email": "bob@example.com"},
-            now=now,
-        )
+        make(9, 13, client_data={**client_data, "email": "bob@example.com"})
 
 
-def test_closed_bookings_do_not_block(tour, weekdays_9_to_17, policy, now, client_data):
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
+def test_closed_bookings_do_not_block(make, now):
+    b = make()
     transition(b, "rejected", actor="guide", now=now)
-    again = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
-    assert again.status == Booking.Status.PENDING
+    assert make().status == Booking.Status.PENDING
 
 
-def test_validation_errors(tour, weekdays_9_to_17, policy, now, client_data):
+def test_validation_errors(make, client_data):
     with pytest.raises(BookingError, match="privacy"):
-        create_booking(
-            service=tour,
-            start=WED_11,
-            client_data={**client_data, "privacy_consent": False},
-            now=now,
-        )
+        make(client_data={**client_data, "privacy_consent": False})
     with pytest.raises(BookingError, match="Group size"):
-        create_booking(service=tour, start=WED_11, client_data=client_data, party_size=9, now=now)
+        make(party_size=500)
+    with pytest.raises(SlotUnavailable, match="at least 4 h"):
+        make(9, 11)
 
 
-def test_client_is_reused_case_insensitively(tour, weekdays_9_to_17, policy, now, client_data):
-    create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
-    create_booking(
-        service=tour,
-        start=malta(2026, 11, 12, 11),
-        client_data={**client_data, "email": "JANE@example.com", "phone": "+356 1234"},
-        now=now,
-    )
+def test_client_is_reused_case_insensitively(make, client_data):
+    make()
+    make(day=12, client_data={**client_data, "email": "JANE@example.com", "phone": "+356 1234"})
     assert Client.objects.count() == 1
     assert Client.objects.get().phone == "+356 1234"
 
 
-def test_transition_rules(tour, weekdays_9_to_17, policy, now, client_data):
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
+def test_transition_rules(make, now):
+    b = make()
     with pytest.raises(InvalidTransition):
         transition(b, "confirmed", actor="client", now=now)  # only the guide confirms
     with pytest.raises(InvalidTransition):
@@ -159,23 +161,24 @@ def test_transition_rules(tour, weekdays_9_to_17, policy, now, client_data):
     ]
 
 
-def test_signal_fires_after_commit(
-    tour, weekdays_9_to_17, policy, now, client_data, django_capture_on_commit_callbacks
-):
+def test_signal_fires_after_commit(make, now, django_capture_on_commit_callbacks):
     received = []
-    handler = lambda **kw: received.append((kw["from_status"], kw["to_status"]))  # noqa: E731
+
+    def handler(**kw):
+        received.append((kw["from_status"], kw["to_status"]))
+
     booking_status_changed.connect(handler)
     try:
         with django_capture_on_commit_callbacks(execute=True):
-            b = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
+            b = make()
             transition(b, "confirmed", actor="guide", now=now)
     finally:
         booking_status_changed.disconnect(handler)
     assert received == [("", "pending"), ("pending", "confirmed")]
 
 
-def test_expire_stale(tour, weekdays_9_to_17, policy, now, client_data):
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
+def test_expire_stale(make, now):
+    b = make()
     assert expire_stale(now=now + timedelta(hours=23)) == 0
     assert expire_stale(now=now + timedelta(hours=24)) == 1
     b.refresh_from_db()
@@ -183,34 +186,31 @@ def test_expire_stale(tour, weekdays_9_to_17, policy, now, client_data):
     assert b.events.last().actor == BookingEvent.Actor.SYSTEM
 
 
-def test_complete_past(tour, weekdays_9_to_17, policy, now, client_data):
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
+def test_complete_past(make, now):
+    b = make(9, 13)
     transition(b, "confirmed", actor="guide", now=now)
-    assert complete_past(now=WED_11 + timedelta(hours=1)) == 0
-    assert complete_past(now=WED_11 + timedelta(hours=2)) == 1
+    assert complete_past(now=START + timedelta(hours=3)) == 0
+    assert complete_past(now=END) == 1
 
 
-def test_free_cancellation_window(tour, weekdays_9_to_17, policy, now, client_data):
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
-    assert is_free_cancellation(b, now=WED_11 - timedelta(hours=48))
-    assert not is_free_cancellation(b, now=WED_11 - timedelta(hours=47))
+def test_free_cancellation_window(make):
+    b = make()
+    assert is_free_cancellation(b, now=START - timedelta(hours=48))
+    assert not is_free_cancellation(b, now=START - timedelta(hours=47))
 
 
-def test_reschedule(tour, weekdays_9_to_17, policy, now, client_data):
-    b = create_booking(service=tour, start=WED_11, client_data=client_data, now=now)
-    # Moving by one hour overlaps its own old slot: allowed, it excludes itself.
-    b = reschedule(b, malta(2026, 11, 11, 12), actor="client", now=now)
-    assert b.start == malta(2026, 11, 11, 12)
-    assert b.blocked_period.upper == malta(2026, 11, 11, 14, 30)
+def test_reschedule_keeps_length_or_takes_new_end(make, now, client_data):
+    b = make(9, 13)
+    # Moving by one hour overlaps its own old block: allowed, it excludes itself.
+    b = reschedule(b, malta(2026, 11, 11, 10), actor="client", now=now)
+    assert (b.start, b.end) == (malta(2026, 11, 11, 10), malta(2026, 11, 11, 14))
     assert "Rescheduled" in b.events.last().note
 
-    other = create_booking(
-        service=tour,
-        start=malta(2026, 11, 12, 11),
-        client_data={**client_data, "email": "bob@example.com"},
-        now=now,
-    )
+    b = reschedule(b, malta(2026, 11, 11, 9), malta(2026, 11, 11, 15), actor="guide", now=now)
+    assert b.price_total == Decimal("180.00")  # 6 h now
+
+    other = make(9, 13, day=12, client_data={**client_data, "email": "bob@example.com"})
     with pytest.raises(SlotUnavailable):
-        reschedule(other, malta(2026, 11, 11, 13), actor="guide", now=now)
+        reschedule(other, malta(2026, 11, 11, 12), actor="guide", now=now)
     with pytest.raises(BookingError, match="no longer"):
-        reschedule(b, malta(2026, 11, 13, 11), actor="client", now=WED_11 - timedelta(hours=10))
+        reschedule(b, malta(2026, 11, 13, 9), actor="client", now=START - timedelta(hours=10))

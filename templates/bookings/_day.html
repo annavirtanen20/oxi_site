@@ -1,0 +1,34 @@
+<h2 class="slots__title">{{ day|date:"l, j F" }}</h2>
+
+<div class="hours" aria-hidden="true">
+  {% for h in timeline %}
+    <span class="hours__cell{% if h.free %} hours__cell--free{% endif %}" title="{{ h.start|time:'H:i' }}">
+      {% if forloop.counter0|divisibleby:3 %}<span class="hours__label">{{ h.start|time:"H" }}</span>{% endif %}
+    </span>
+  {% endfor %}
+</div>
+<p class="hours__legend"><span class="hours__key hours__key--free"></span> free <span class="hours__key"></span> not available</p>
+
+{% if starts %}
+  <h3 class="slots__step">Start at</h3>
+  <ul class="slots__list">
+    {% for s in starts %}
+      <li>
+        <a class="slot{% if start and start == s %} slot--selected{% endif %}"
+           href="?start={{ s.isoformat|urlencode }}#ends"
+           hx-get="{% url 'book_ends' service.slug %}?start={{ s.isoformat|urlencode }}"
+           hx-target="#ends"
+           {% if start and start == s %}aria-pressed="true"{% endif %}>{{ s|time:"H:i" }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+  <div id="ends" class="ends" aria-live="polite">
+    {% if end_options is not None %}
+      {% include "bookings/_ends.html" %}
+    {% else %}
+      <p class="slots__hint">Choose a start time, then how long you need me. At least {{ service.min_duration_label }}.</p>
+    {% endif %}
+  </div>
+{% else %}
+  <p class="slots__hint">No block of {{ service.min_duration_label }} fits on this day any more. Please pick another day.</p>
+{% endif %}

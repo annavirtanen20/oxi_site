@@ -234,7 +234,7 @@ class BookingPolicyViewSet(ModelViewSet):
     index_view_class = PolicyIndexView
     copy_view_enabled = False
     form_fields = [
-        "slot_step",
+        "allow_overnight",
         "min_notice",
         "horizon",
         "pending_ttl",

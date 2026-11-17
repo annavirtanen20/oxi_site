@@ -33,10 +33,17 @@ class ServiceViewSet(SnippetViewSet):
         MultiFieldPanel(
             [
                 FieldRowPanel([FieldPanel("price"), FieldPanel("price_type")]),
-                FieldRowPanel([FieldPanel("duration"), FieldPanel("max_group_size")]),
+                FieldRowPanel(
+                    [
+                        FieldPanel("min_duration"),
+                        FieldPanel("duration_step"),
+                        FieldPanel("max_duration"),
+                    ]
+                ),
                 FieldRowPanel([FieldPanel("buffer_before"), FieldPanel("buffer_after")]),
+                FieldPanel("max_group_size"),
             ],
-            heading="Price and timing",
+            heading="Price and booking length",
         ),
         MultiFieldPanel(
             [

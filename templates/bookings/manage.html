@@ -15,7 +15,7 @@
         <h1 class="page-heading page-heading--small">Deposit needed</h1>
         <p>The time is held while you pay the deposit of €{{ booking.deposit_amount }}.</p>
       {% elif booking.status == "completed" %}
-        <h1 class="page-heading page-heading--small">Thanks for the day together</h1>
+        <h1 class="page-heading page-heading--small">Thank you, it was a pleasure working together</h1>
       {% elif booking.status == "cancelled" %}
         <h1 class="page-heading page-heading--small">Booking cancelled</h1>
         <p>The time is released. You're welcome to book another date.</p>
@@ -32,11 +32,12 @@
       <div class="panel">
         <h2 class="subheading">{{ booking.service.name }}</h2>
         <dl class="facts">
-          <div class="facts__row"><dt>Date</dt><dd>{{ booking.start|date:"l, j F Y" }}</dd></div>
-          <div class="facts__row"><dt>Time</dt><dd>{{ booking.start|time:"H:i" }} to {{ booking.end|time:"H:i" }}, Malta time</dd></div>
-          <div class="facts__row"><dt>People</dt><dd>{{ booking.party_size }}</dd></div>
-          {% if booking.details.flight_number %}<div class="facts__row"><dt>Flight</dt><dd>{{ booking.details.flight_number }}</dd></div>{% endif %}
-          {% if booking.details.meeting_point %}<div class="facts__row"><dt>Meeting point</dt><dd>{{ booking.details.meeting_point }}</dd></div>{% endif %}
+          <div class="facts__row"><dt>When</dt><dd>{{ when }}, Malta time</dd></div>
+          <div class="facts__row"><dt>Length</dt><dd>{{ length }}</dd></div>
+          <div class="facts__row"><dt>Group</dt><dd>{{ booking.party_size }}</dd></div>
+          {% if booking.details.flight_number %}<div class="facts__row"><dt>Flight</dt><dd>{{ booking.details.flight_number }}{% if booking.details.arrival_time %}, landing {{ booking.details.arrival_time }}{% endif %}</dd></div>{% endif %}
+          {% if booking.details.event_name %}<div class="facts__row"><dt>Event</dt><dd>{{ booking.details.event_name }}</dd></div>{% endif %}
+          {% if booking.details.venue %}<div class="facts__row"><dt>Venue</dt><dd>{{ booking.details.venue }}</dd></div>{% endif %}
           {% if booking.price_total %}<div class="facts__row"><dt>Price</dt><dd>€{{ booking.price_total }}</dd></div>{% endif %}
           <div class="facts__row"><dt>Booked by</dt><dd>{{ booking.client.name }}</dd></div>
         </dl>

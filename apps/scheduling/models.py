@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import time, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -7,9 +7,6 @@ from django.db import models
 class BookingPolicy(models.Model):
     """Guide-editable booking rules (ТЗ, раздел 4.4). Singleton: always pk=1."""
 
-    slot_step = models.DurationField(
-        default=timedelta(minutes=30), help_text="Grid for offered start times."
-    )
     min_notice = models.DurationField(
         default=timedelta(hours=24), help_text="How far in advance a booking must be made."
     )
@@ -28,6 +25,12 @@ class BookingPolicy(models.Model):
         default=timedelta(hours=48),
         help_text="Clients can cancel or reschedule for free up to this long before start.",
     )
+    allow_overnight = models.BooleanField(
+        default=True,
+        verbose_name="Allow bookings past midnight",
+        help_text="A block may continue into the next day (e.g. 21:00–02:00) if the "
+        "working hours of both days join at midnight.",
+    )
 
     class Meta:
         verbose_name = "booking policy"
@@ -41,8 +44,9 @@ class BookingPolicy(models.Model):
         super().save(*args, **kwargs)
 
     def clean(self):
-        if self.slot_step <= timedelta(0):
-            raise ValidationError({"slot_step": "Must be positive."})
+        for name in ("min_notice", "horizon", "pending_ttl", "payment_ttl"):
+            if getattr(self, name) < timedelta(0):
+                raise ValidationError({name: "Can't be negative."})
 
     @property
     def free_cancellation_label(self) -> str:
@@ -56,7 +60,11 @@ class BookingPolicy(models.Model):
 
 
 class WorkingHours(models.Model):
-    """Regular weekly availability. Several intervals per day are allowed."""
+    """Regular weekly availability. Several intervals per day are allowed.
+
+    An end of 00:00 means midnight at the end of the day, so 00:00–00:00 is the
+    whole day and Friday 18:00–00:00 joins Saturday 00:00–03:00.
+    """
 
     class Weekday(models.IntegerChoices):
         MONDAY = 0, "Monday"
@@ -69,20 +77,25 @@ class WorkingHours(models.Model):
 
     weekday = models.PositiveSmallIntegerField(choices=Weekday.choices)
     start = models.TimeField()
-    end = models.TimeField()
+    end = models.TimeField(help_text="00:00 means the end of the day (midnight).")
 
     class Meta:
         ordering = ["weekday", "start"]
         verbose_name_plural = "working hours"
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(start__lt=models.F("end")),
+                condition=models.Q(start__lt=models.F("end")) | models.Q(end=time(0)),
                 name="working_hours_start_before_end",
             )
         ]
 
     def __str__(self):
-        return f"{self.get_weekday_display()} {self.start:%H:%M}–{self.end:%H:%M}"
+        end = "24:00" if self.ends_at_midnight else f"{self.end:%H:%M}"
+        return f"{self.get_weekday_display()} {self.start:%H:%M}–{end}"
+
+    @property
+    def ends_at_midnight(self) -> bool:
+        return self.end == time(0)
 
 
 class TimeOff(models.Model):

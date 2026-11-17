@@ -70,6 +70,8 @@ def _upsert_client(data: dict, now: datetime) -> Client:
         for k in ("name", "phone", "messenger", "messenger_handle", "kind", "company")
         if data.get(k)
     }
+    if fields.get("company") and "kind" not in fields:
+        fields["kind"] = Client.Kind.AGENCY
     if client is None:
         client = Client(email=email, **fields)
     else:
@@ -85,6 +87,7 @@ def create_booking(
     *,
     service: Service,
     start: datetime,
+    end: datetime,
     client_data: dict,
     party_size: int = 1,
     details: dict | None = None,
@@ -104,11 +107,11 @@ def create_booking(
     if not (1 <= party_size <= service.max_group_size):
         raise BookingError(f"Group size must be between 1 and {service.max_group_size}.")
 
-    problem = availability_problem(service, start, now=now, policy=policy)
+    problem = availability_problem(service, start, end, now=now, policy=policy)
     if problem:
         raise SlotUnavailable(problem)
 
-    price = service.total_price(party_size)
+    price = service.total_price(party_size, end - start)
     deposit = None
     if service.takes_deposit and price is not None:
         deposit = (price * Decimal(service.deposit_percent) / 100).quantize(Decimal("0.01"))
@@ -128,7 +131,7 @@ def create_booking(
                 client=client,
                 status=status,
                 start=start,
-                end=start + service.duration,
+                end=end,
                 party_size=party_size,
                 details=details or {},
                 comment=comment,
@@ -242,9 +245,15 @@ def is_free_cancellation(booking: Booking, *, now: datetime | None = None) -> bo
 
 
 def reschedule(
-    booking: Booking, new_start: datetime, *, actor: str, now: datetime | None = None
+    booking: Booking,
+    new_start: datetime,
+    new_end: datetime | None = None,
+    *,
+    actor: str,
+    now: datetime | None = None,
 ) -> Booking:
-    """Move an active booking to a new start time, keeping its status."""
+    """Move an active booking to a new time, keeping its status.
+    Without `new_end` the booking keeps its length."""
     now = now or timezone.now()
     if actor == Actor.CLIENT and not is_free_cancellation(booking, now=now):
         raise BookingError("This booking can no longer be rescheduled online. Please contact us.")
@@ -252,14 +261,17 @@ def reschedule(
         locked = Booking.objects.select_for_update().select_related("service").get(pk=booking.pk)
         if not locked.is_active:
             raise BookingError("Only active bookings can be rescheduled.")
+        new_end = new_end or new_start + (locked.end - locked.start)
         problem = availability_problem(
-            locked.service, new_start, now=now, exclude_booking_id=locked.pk
+            locked.service, new_start, new_end, now=now, exclude_booking_id=locked.pk
         )
         if problem:
             raise SlotUnavailable(problem)
         old_start = locked.start
+        if locked.end - locked.start != new_end - new_start:
+            locked.price_total = locked.service.total_price(locked.party_size, new_end - new_start)
         locked.start = new_start
-        locked.end = new_start + locked.service.duration
+        locked.end = new_end
         try:
             with transaction.atomic():
                 locked.save()

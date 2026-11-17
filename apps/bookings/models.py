@@ -1,12 +1,26 @@
 import secrets
+from datetime import datetime, timedelta
 
 from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.fields import DateTimeRangeField, RangeOperators
 from django.db import models
 from django.db.backends.postgresql.psycopg_any import DateTimeTZRange
 from django.db.models.functions import Lower
+from django.utils import timezone
 
 from apps.catalog.models import Service
+
+
+def block_label(start: datetime, end: datetime, *, year: bool = False) -> str:
+    """'Wed 11 Nov, 09:00–13:00', 'Wed 11 Nov, 20:00–24:00' or
+    'Wed 11 Nov 21:00 – Thu 12 Nov 02:00' (Malta time)."""
+    start, end = timezone.localtime(start), timezone.localtime(end)
+    day_fmt = "%a %d %b %Y" if year else "%a %d %b"
+    if end.date() == start.date():
+        return f"{start:{day_fmt}}, {start:%H:%M}–{end:%H:%M}"
+    if end - start <= timedelta(days=1) and (end.hour, end.minute) == (0, 0):
+        return f"{start:{day_fmt}}, {start:%H:%M}–24:00"
+    return f"{start:{day_fmt} %H:%M} – {end:{day_fmt} %H:%M}"
 
 
 class Client(models.Model):
@@ -122,10 +136,7 @@ class Booking(models.Model):
     status_label.short_description = "Status"
 
     def when(self) -> str:
-        from django.utils import timezone
-
-        start, end = timezone.localtime(self.start), timezone.localtime(self.end)
-        return f"{start:%a %d %b %Y, %H:%M}–{end:%H:%M}"
+        return block_label(self.start, self.end, year=True)
 
     when.short_description = "When"
 

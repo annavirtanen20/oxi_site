@@ -1,4 +1,4 @@
-"""The guide's workspace in Wagtail (/cms/)."""
+"""Oksana's workspace in Wagtail (/cms/)."""
 
 from datetime import timedelta
 
@@ -11,7 +11,7 @@ from apps.bookings.models import Booking
 from apps.bookings.services import create_booking
 from apps.catalog.models import Service
 from apps.scheduling.models import BookingPolicy
-from apps.scheduling.slots import available_slots
+from apps.scheduling.slots import available_starts
 
 pytestmark = pytest.mark.django_db
 
@@ -25,13 +25,13 @@ def guide(client, db):
 
 @pytest.fixture
 def booking(site):
-    tour = Service.objects.get(slug="valletta-walking-tour")
+    hostess = Service.objects.get(slug="event-hostess")
     day = timezone.localdate() + timedelta(days=3)
-    while not available_slots(tour, day):
-        day += timedelta(days=1)
+    start = available_starts(hostess, day)[9]  # 09:00, the CMS is open round the clock
     return create_booking(
-        service=tour,
-        start=available_slots(tour, day)[0],
+        service=hostess,
+        start=start,
+        end=start + timedelta(hours=4),
         client_data={"name": "Jane", "email": "jane@example.com", "privacy_consent": True},
         party_size=2,
     )

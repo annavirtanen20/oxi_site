@@ -1,0 +1,17 @@
+<h3 class="slots__step">Until</h3>
+{% if end_options %}
+  <ul class="ends__list">
+    {% for o in end_options %}
+      <li>
+        <a class="end" href="{% url 'book_details' service.slug %}?start={{ start.isoformat|urlencode }}&end={{ o.end.isoformat|urlencode }}">
+          <span class="end__time">{% if o.end.hour == 0 and o.end.minute == 0 %}24:00{% else %}{{ o.end|time:"H:i" }}{% endif %}{% if o.next_day %} <span class="end__next">next day</span>{% endif %}</span>
+          <span class="end__length">{{ o.length }}</span>
+          {% if o.price %}<span class="end__price">{{ o.price }}</span>{% endif %}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+  <p class="slots__hint">Times are Malta time.{% if service.price_type == "per_hour" %} Price for the whole block.{% endif %}</p>
+{% else %}
+  <p class="slots__hint">This start has just been taken. Please choose another one.</p>
+{% endif %}

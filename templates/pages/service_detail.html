@@ -8,12 +8,12 @@
         <h1 class="page-heading">{{ service.name }}</h1>
         {% if service.short_description %}<p class="lead">{{ service.short_description }}</p>{% endif %}
         <dl class="facts">
-          <div class="facts__row"><dt>Duration</dt><dd>{{ service.duration_label }}</dd></div>
+          <div class="facts__row"><dt>Booking</dt><dd>{{ service.duration_label|capfirst }}, in steps of {{ service.step_label }}</dd></div>
           <div class="facts__row"><dt>Price</dt><dd>{{ service.price_label }}</dd></div>
           <div class="facts__row"><dt>Group</dt><dd>Up to {{ service.max_group_size }} people</dd></div>
           <div class="facts__row"><dt>Confirmation</dt><dd>{% if service.requires_manual_confirmation %}I confirm personally, usually within a few hours{% else %}Instant{% endif %}</dd></div>
         </dl>
-        <a class="button button--book button--large" href="{% url 'book_time' service.slug %}">{% if service.kind == "airport" %}Book a pickup{% else %}Choose a date{% endif %}</a>
+        <a class="button button--book button--large" href="{% url 'book_time' service.slug %}">Check free dates</a>
       </div>
       {% if service.image %}{% include "includes/arch_photo.html" with image=service.image alt=service.name small=True %}{% endif %}
     </div>

@@ -313,3 +313,26 @@ a.calendar__nav:hover { background: var(--stone-light); }
 
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
 .summary__form { margin: 16px 0; }
+
+/* Hour strip and block picker */
+.hours { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; margin: 4px 0 6px; }
+.hours__cell { position: relative; height: 22px; background: #e3e9ed; border-radius: 2px; }
+.hours__cell--free { background: var(--stone); }
+.hours__label { position: absolute; top: 26px; left: 0; font-size: 0.72rem; color: var(--ink-soft); }
+.hours__legend { display: flex; align-items: center; gap: 6px; margin: 24px 0 20px; font-size: var(--step--1); color: var(--ink-soft); }
+.hours__key { display: inline-block; width: 14px; height: 14px; border-radius: 2px; background: #e3e9ed; margin-left: 10px; }
+.hours__key--free { background: var(--stone); margin-left: 0; }
+.slots__step { font-family: var(--sans); font-size: var(--step-0); font-weight: 700; margin: 0 0 10px; }
+.slot--selected, .slot--selected:hover { background: var(--ink); border-color: var(--ink); color: var(--white); }
+.ends { margin-top: 24px; }
+.ends__list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 8px; }
+.end {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: baseline;
+  padding: 12px 16px; border: 1.5px solid var(--line); border-radius: var(--radius);
+  background: var(--white); text-decoration: none;
+}
+.end:hover { border-color: var(--ink); background: var(--stone-light); }
+.end__time { font-weight: 700; font-size: var(--step-1); }
+.end__next { font-weight: 400; font-size: var(--step--1); color: var(--ink-soft); }
+.end__length { color: var(--ink-soft); }
+.end__price { font-family: var(--serif); font-weight: 700; min-width: 4.5rem; text-align: right; }

@@ -6,7 +6,7 @@
     {% if service.short_description %}<p class="price-row__desc">{{ service.short_description }}</p>{% endif %}
   </div>
   <dl class="price-row__facts">
-    <div><dt>{% if service.kind == "airport" %}From landing{% else %}Duration{% endif %}</dt><dd>{{ service.duration_label }}</dd></div>
+    <div><dt>Booking</dt><dd>{{ service.duration_label|capfirst }}</dd></div>
     <div><dt>Price</dt><dd class="price-row__price">{{ service.price_label }}</dd></div>
   </dl>
   <a class="button button--small" href="{% url 'book_time' service.slug %}" aria-label="{% if service.price_type == 'on_request' %}Request{% else %}Book{% endif %} {{ service.name }}">{% if service.price_type == "on_request" %}Request{% else %}Book{% endif %}</a>

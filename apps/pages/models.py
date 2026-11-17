@@ -24,7 +24,7 @@ IMAGE_FK = dict(
 class SiteSettings(BaseSiteSetting):
     """Contacts and brand details used in the header, footer and contact buttons."""
 
-    brand_name = models.CharField(max_length=80, default="Your name, Malta guide")
+    brand_name = models.CharField(max_length=80, default="Your name")
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=40, blank=True)
     whatsapp_number = models.CharField(
@@ -33,7 +33,9 @@ class SiteSettings(BaseSiteSetting):
     telegram_username = models.CharField(max_length=40, blank=True, help_text="Without @")
     service_area = models.CharField(max_length=120, default="Malta, Gozo and Comino")
     licence_note = models.CharField(
-        max_length=160, blank=True, help_text="e.g. Licensed tourist guide, Malta Tourism Authority"
+        max_length=160,
+        blank=True,
+        help_text="e.g. Freelance event hostess and ground representative",
     )
 
     panels = [
@@ -64,14 +66,14 @@ class HomePage(Page):
     hero_heading = models.CharField(max_length=120)
     hero_text = models.TextField(blank=True)
     hero_image = models.ForeignKey(**IMAGE_FK)
-    services_heading = models.CharField(max_length=120, default="Tours and services")
+    services_heading = models.CharField(max_length=120, default="Services and rates")
     services_intro = models.TextField(blank=True)
     about_heading = models.CharField(max_length=120, blank=True)
     about_text = RichTextField(blank=True, features=["bold", "italic", "link"])
     about_page = models.ForeignKey(
         "wagtailcore.Page", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
-    reviews_heading = models.CharField(max_length=120, default="What guests say")
+    reviews_heading = models.CharField(max_length=120, default="What clients say")
     reviews = StreamField([("review", ReviewBlock())], blank=True)
 
     max_count = 1

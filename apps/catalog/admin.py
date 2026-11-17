@@ -8,7 +8,7 @@ class ServiceAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "kind",
-        "duration",
+        "min_duration",
         "price",
         "price_type",
         "confirmation_mode",

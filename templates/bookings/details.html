@@ -7,40 +7,36 @@
     {% include "bookings/_steps.html" with step=3 %}
     <div class="split split--form">
       <div class="panel">
-        <h1 class="page-heading page-heading--small">{% if service.kind == "airport" %}Flight and contact details{% else %}Your details{% endif %}</h1>
+        <h1 class="page-heading page-heading--small">Your details</h1>
+        {% if problem %}
+          <div class="message message--error" role="alert">
+            <p>{{ problem }}</p>
+            <p><a href="{% url 'book_time' service.slug %}?date={{ start|date:'Y-m-d' }}">Choose another time</a></p>
+          </div>
+        {% endif %}
         <form method="post" novalidate>
           {% csrf_token %}
-          {% if start %}<input type="hidden" name="start" value="{{ start.isoformat }}">{% endif %}
+          <input type="hidden" name="start" value="{{ start.isoformat }}">
+          <input type="hidden" name="end" value="{{ end.isoformat }}">
           {% include "includes/form_errors.html" %}
-          {% if form.slot_taken %}<p><a href="{% url 'book_time' service.slug %}">Choose another time</a></p>{% endif %}
 
-          {% if form.flight_number %}
-            <fieldset class="fieldset">
-              <legend>Your flight</legend>
-              {% include "includes/field.html" with field=form.flight_number %}
-              <div class="field-row">
-                {% include "includes/field.html" with field=form.arrival_date %}
-                {% include "includes/field.html" with field=form.arrival_time %}
-              </div>
-              {% include "includes/field.html" with field=form.name_on_sign %}
-              {% include "includes/field.html" with field=form.hotel %}
-            </fieldset>
-          {% endif %}
+          <fieldset class="fieldset">
+            <legend>{% if form.is_airport %}The arrival{% else %}The event{% endif %}</legend>
+            {% for field in form.service_fields %}{% include "includes/field.html" %}{% endfor %}
+            {% include "includes/field.html" with field=form.party_size %}
+          </fieldset>
 
           <fieldset class="fieldset">
             <legend>Contact</legend>
-            {% include "includes/field.html" with field=form.name %}
+            <div class="field-row">
+              {% include "includes/field.html" with field=form.name %}
+              {% include "includes/field.html" with field=form.company %}
+            </div>
             {% include "includes/field.html" with field=form.email %}
             <div class="field-row">
               {% include "includes/field.html" with field=form.phone %}
               {% include "includes/field.html" with field=form.messenger %}
             </div>
-          </fieldset>
-
-          <fieldset class="fieldset">
-            <legend>Your group</legend>
-            {% include "includes/field.html" with field=form.party_size %}
-            {% if form.meeting_point %}{% include "includes/field.html" with field=form.meeting_point %}{% endif %}
             {% include "includes/field.html" with field=form.comment %}
           </fieldset>
 
@@ -51,20 +47,18 @@
           <button class="button button--book button--large" type="submit">
             {% if service.requires_manual_confirmation %}Send booking request{% else %}Book now{% endif %}
           </button>
-          <p class="note">{% if service.requires_manual_confirmation %}Nothing is charged now. I'll confirm by email, usually within a few hours.{% else %}You'll get a confirmation by email right away.{% endif %}</p>
+          <p class="note">{% if service.requires_manual_confirmation %}Nothing is charged now. The time is held for you and I confirm by email, usually within a few hours.{% else %}You'll get a confirmation by email right away.{% endif %}</p>
         </form>
       </div>
 
       <aside class="summary" aria-label="Booking summary">
         <h2 class="subheading">{{ service.name }}</h2>
         <dl class="facts facts--compact">
-          {% if start %}
-            <div class="facts__row"><dt>Date</dt><dd>{{ start|date:"l, j F Y" }}</dd></div>
-            <div class="facts__row"><dt>Time</dt><dd>{{ start|time:"H:i" }}, about {{ service.duration_label }}</dd></div>
-          {% endif %}
-          <div class="facts__row"><dt>Price</dt><dd>{{ service.price_label }}</dd></div>
+          <div class="facts__row"><dt>When</dt><dd>{{ when }}</dd></div>
+          <div class="facts__row"><dt>Length</dt><dd>{{ length }}</dd></div>
+          <div class="facts__row"><dt>Price</dt><dd>{% if price %}€{{ price }}{% if service.price_type == "per_hour" %} ({{ service.price_label }}){% endif %}{% else %}{{ service.price_label }}{% endif %}</dd></div>
         </dl>
-        {% if start %}<a href="{% url 'book_time' service.slug %}?month={{ start|date:'Y-m' }}&date={{ start|date:'Y-m-d' }}">Change time</a>{% endif %}
+        <a href="{% url 'book_time' service.slug %}?start={{ start.isoformat|urlencode }}#ends">Change time</a>
       </aside>
     </div>
   </div>
