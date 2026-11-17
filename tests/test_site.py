@@ -80,6 +80,17 @@ def test_home_lists_active_services_only(site, client):
     assert "Group escort" not in html
 
 
+def test_home_shows_next_free_dates(site, client):
+    html = client.get("/").content.decode()
+    assert "Next free dates" in html
+    assert html.count('class="free-day"') == 3
+
+
+def test_home_hides_free_dates_without_services(site, client):
+    Service.objects.update(is_active=False)
+    assert "Next free dates" not in client.get("/").content.decode()
+
+
 def test_unknown_service_page_is_404(site, client):
     assert client.get("/services/no-such-service/").status_code == 404
     assert client.get("/book/no-such-service/").status_code == 404

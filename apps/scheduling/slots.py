@@ -338,3 +338,56 @@ def available_days(
             days.append(day)
         day += timedelta(days=1)
     return days
+
+
+def upcoming_free_days(
+    *, count: int = 3, search_days: int = 31, now: datetime | None = None
+) -> list[dict]:
+    """The next `count` days with free working time, for the "Next free dates" card.
+
+    Free time is working hours minus bookings (with their buffers) and time off,
+    after the minimum notice and within the horizon. Only stretches long enough for
+    the shortest active service count. Each day: {'day': date, 'ranges': [(start,
+    end), ...] in Malta time, 'hours': float, 'all_day': bool}.
+    """
+    shortest = (
+        Service.objects.filter(is_active=True)
+        .order_by("min_duration")
+        .values_list("min_duration", flat=True)
+        .first()
+    )
+    if shortest is None:
+        return []
+    now = now or timezone.now()
+    policy = BookingPolicy.get()
+    tz = business_tz()
+    lo, hi = now + policy.min_notice, now + policy.horizon
+    first = now.astimezone(tz).date()
+
+    days = []
+    for offset in range(search_days):
+        day = first + timedelta(days=offset)
+        day_start, day_end = local_midnight(day), local_midnight(day + timedelta(days=1))
+        if day_start >= hi:
+            break
+        span = Interval(day_start, day_end)
+        windows = _clip(
+            working_windows(day - timedelta(days=1), day), max(day_start, lo), min(day_end, hi)
+        )
+        free = [
+            iv for iv in _subtract(windows, busy_intervals(span)) if iv.end - iv.start >= shortest
+        ]
+        if not free:
+            continue
+        total = sum((iv.end - iv.start for iv in free), timedelta())
+        days.append(
+            {
+                "day": day,
+                "ranges": [(iv.start.astimezone(tz), iv.end.astimezone(tz)) for iv in free],
+                "hours": total.total_seconds() / 3600,
+                "all_day": len(free) == 1 and free[0] == span,
+            }
+        )
+        if len(days) == count:
+            break
+    return days

@@ -23,7 +23,7 @@ Done (MVP foundation):
 - Booking wizard: `/book/` → service → calendar with free days and HTMX slot list →
   details form (airport pickups ask for flight and arrival time instead of a slot) →
   `/booking/<token>/` page where the client sees the status and can cancel.
-- Self-hosted fonts (Alegreya) and HTMX: no third-party requests from the public site.
+- Self-hosted fonts (Inter, Inter Tight; SIL OFL, see `static/fonts/OFL-Inter.txt`) and HTMX: no third-party requests from the public site.
 
 Next: emails, Telegram bot, Google Calendar sync, Celery beat for
 `expire_stale` / `complete_past`, Stripe deposits.

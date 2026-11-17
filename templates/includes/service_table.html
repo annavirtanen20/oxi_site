@@ -1,0 +1,8 @@
+<div class="svc-table__head" aria-hidden="true"><span>№</span><span>Service</span><span>What it covers</span><span>Group</span><span>Rate</span><span></span></div>
+<ol class="svc-table">
+  {% for service in services %}
+    {% include "includes/service_row.html" %}
+  {% empty %}
+    <li class="empty">{{ empty_text|default:"Services will appear here once they are added in the CMS." }}</li>
+  {% endfor %}
+</ol>

@@ -1,13 +1,15 @@
-<li class="price-row">
-  <div class="price-row__main">
-    <h3 class="price-row__name">
+<li class="svc">
+  <span class="svc__num" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+  <div class="svc__main">
+    <h3 class="svc__name">
       {% if services_page %}<a href="{{ services_page.url }}{{ service.slug }}/">{{ service.name }}</a>{% else %}{{ service.name }}{% endif %}
     </h3>
-    {% if service.short_description %}<p class="price-row__desc">{{ service.short_description }}</p>{% endif %}
+    <span class="tag tag--{{ service.kind }}">{{ service.duration_label|capfirst }}</span>
   </div>
-  <dl class="price-row__facts">
-    <div><dt>Booking</dt><dd>{{ service.duration_label|capfirst }}</dd></div>
-    <div><dt>Price</dt><dd class="price-row__price">{{ service.price_label }}</dd></div>
+  {% if service.short_description %}<p class="svc__desc">{{ service.short_description }}</p>{% else %}<span class="svc__desc"></span>{% endif %}
+  <dl class="svc__facts">
+    <div><dt>Group</dt><dd>up to {{ service.max_group_size }}</dd></div>
+    <div><dt>Price</dt><dd class="svc__price">{{ service.price_label }}</dd></div>
   </dl>
-  <a class="button button--small" href="{% url 'book_time' service.slug %}" aria-label="{% if service.price_type == 'on_request' %}Request{% else %}Book{% endif %} {{ service.name }}">{% if service.price_type == "on_request" %}Request{% else %}Book{% endif %}</a>
+  <a class="button button--small svc__action" href="{% url 'book_time' service.slug %}" aria-label="{% if service.price_type == 'on_request' %}Request{% else %}Book{% endif %} {{ service.name }}">{% if service.price_type == "on_request" %}Request{% else %}Book{% endif %}</a>
 </li>

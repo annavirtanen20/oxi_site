@@ -1,7 +1,11 @@
 {% load wagtailcore_tags site_tags %}
 <header class="site-header">
+  <div class="stripe" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   <div class="wrap site-header__inner">
-    <a class="brand" href="{% home_url %}">{{ settings.pages.SiteSettings.brand_name }}</a>
+    <a class="brand" href="{% home_url %}">
+      <span class="brand__name">{{ settings.pages.SiteSettings.brand_name }}</span>
+      {% if settings.pages.SiteSettings.licence_note %}<span class="brand__tag">{{ settings.pages.SiteSettings.licence_note }}</span>{% endif %}
+    </a>
     {% menu_pages as items %}
     <nav class="nav" aria-label="Main">
       <details class="nav__toggle">

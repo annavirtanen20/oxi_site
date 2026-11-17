@@ -7,44 +7,56 @@
 <section class="hero">
   <div class="wrap hero__inner">
     <div class="hero__text">
+      {% if page.hero_eyebrow %}<p class="eyebrow">{{ page.hero_eyebrow }}</p>{% endif %}
       <h1 class="hero__heading">{{ page.hero_heading }}</h1>
       {% if page.hero_text %}<p class="hero__lead">{{ page.hero_text|linebreaksbr }}</p>{% endif %}
       <div class="hero__actions">
         <a class="button button--book button--large" href="{% url 'book' %}">See free dates</a>
         {% if settings.pages.SiteSettings.whatsapp_url %}
-          <a class="link-quiet" href="{{ settings.pages.SiteSettings.whatsapp_url }}" target="_blank" rel="noopener">Ask a question on WhatsApp</a>
+          <a class="button button--large" href="{{ settings.pages.SiteSettings.whatsapp_url }}" target="_blank" rel="noopener">Ask on WhatsApp</a>
         {% endif %}
       </div>
     </div>
-    {% include "includes/arch_photo.html" with image=page.hero_image alt=settings.pages.SiteSettings.brand_name %}
+    <div class="hero__aside">
+      {% include "includes/photo.html" with image=page.hero_image alt=settings.pages.SiteSettings.brand_name %}
+      {% include "includes/free_days.html" %}
+    </div>
   </div>
 </section>
 
-<section class="section" id="services">
+<section class="section section--white" id="services">
   <div class="wrap">
-    <h2 class="section__heading">{{ page.services_heading }}</h2>
-    {% if page.services_intro %}<p class="section__intro">{{ page.services_intro }}</p>{% endif %}
-    <ul class="price-list">
-      {% for service in services %}
-        {% include "includes/service_row.html" %}
-      {% empty %}
-        <li class="empty">Services will appear here once they are added in the CMS.</li>
-      {% endfor %}
-    </ul>
+    <div class="section__head">
+      <h2 class="section__heading">{{ page.services_heading }}</h2>
+      {% if page.services_intro %}<p class="section__intro">{{ page.services_intro }}</p>{% endif %}
+    </div>
+    {% include "includes/service_table.html" %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <h2 class="section__heading">How booking works</h2>
+    <ol class="how">
+      <li class="how__step"><span class="how__num" aria-hidden="true">1</span><strong>Pick the hours</strong>Choose a service, a free day and the start and end time.</li>
+      <li class="how__step"><span class="how__num" aria-hidden="true">2</span><strong>Add the details</strong>Flight or event, group size and contact. About two minutes.</li>
+      <li class="how__step"><span class="how__num" aria-hidden="true">3</span><strong>Get confirmed</strong>I confirm personally by email, usually within a few hours.</li>
+    </ol>
   </div>
 </section>
 
 {% if page.about_heading or page.about_text %}
-<section class="section section--stone">
-  <div class="wrap{% if page.about_page.specific.photo %} split{% endif %}">
+<section class="section section--tint">
+  <div class="wrap{% if page.about_page.specific.photo %} split split--photo-left{% endif %}">
+    {% if page.about_page.specific.photo %}
+      {% include "includes/photo.html" with image=page.about_page.specific.photo shape="square" lazy=True %}
+    {% endif %}
     <div>
+      <p class="eyebrow">About</p>
       <h2 class="section__heading">{{ page.about_heading }}</h2>
       <div class="prose">{{ page.about_text|richtext }}</div>
       {% if page.about_page %}<p><a class="link-strong" href="{% pageurl page.about_page %}">More about me and my experience</a></p>{% endif %}
     </div>
-    {% if page.about_page.specific.photo %}
-      {% include "includes/arch_photo.html" with image=page.about_page.specific.photo small=True lazy=True %}
-    {% endif %}
   </div>
 </section>
 {% endif %}
@@ -61,9 +73,11 @@
 {% endif %}
 
 <section class="section section--closing">
-  <div class="wrap closing">
-    <p class="closing__text">Pick a service and the hours you need. I confirm personally, usually within a few hours.</p>
-    <a class="button button--book button--large" href="{% url 'book' %}">Book a date</a>
+  <div class="wrap">
+    <div class="closing">
+      <p class="closing__text">Pick a service and the hours you need. I confirm personally, usually within a few hours.</p>
+      <a class="button button--book button--large" href="{% url 'book' %}">Book a date</a>
+    </div>
   </div>
 </section>
 {% endblock %}

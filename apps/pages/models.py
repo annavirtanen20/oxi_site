@@ -12,6 +12,7 @@ from wagtail.fields import RichTextField, StreamField
 from wagtail.models import Orderable, Page
 
 from apps.catalog.models import Service
+from apps.scheduling.slots import upcoming_free_days
 
 from .blocks import BodyBlock, QuestionBlock, ReviewBlock
 
@@ -63,6 +64,12 @@ class SiteSettings(BaseSiteSetting):
 
 
 class HomePage(Page):
+    hero_eyebrow = models.CharField(
+        max_length=80,
+        blank=True,
+        default="Meet & greet · Event hostess · Malta",
+        help_text="Short line above the heading, e.g. your main services.",
+    )
     hero_heading = models.CharField(max_length=120)
     hero_text = models.TextField(blank=True)
     hero_image = models.ForeignKey(**IMAGE_FK)
@@ -80,7 +87,12 @@ class HomePage(Page):
     parent_page_types = ["wagtailcore.Page"]
     content_panels = Page.content_panels + [
         MultiFieldPanel(
-            [FieldPanel("hero_heading"), FieldPanel("hero_text"), FieldPanel("hero_image")],
+            [
+                FieldPanel("hero_eyebrow"),
+                FieldPanel("hero_heading"),
+                FieldPanel("hero_text"),
+                FieldPanel("hero_image"),
+            ],
             heading="Top of the page",
         ),
         MultiFieldPanel(
@@ -98,6 +110,7 @@ class HomePage(Page):
         context = super().get_context(request, *args, **kwargs)
         context["services"] = Service.objects.filter(is_active=True)
         context["services_page"] = ServicesIndexPage.objects.live().first()
+        context["free_days"] = upcoming_free_days()
         return context
 
 
