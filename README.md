@@ -63,9 +63,11 @@ awaiting_payment ──paid──> pending ──guide confirms──> confirmed
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/ci.yml`): lint (ruff) and tests on every push and pull
-request; pushes to `develop`/`main` build an image to GHCR tagged `sha-<commit>`; pushes to
-`main` deploy it with health check and automatic rollback once `DEPLOY_ENABLED` is set.
+GitHub Actions: `.github/workflows/ci.yml` runs lint (ruff) and tests on every push and pull
+request; pushes to `develop`/`main` build an image to GHCR tagged `sha-<commit>`.
+`.github/workflows/deploy.yml` then deploys it with a health check and automatic rollback:
+`develop` to staging once `STAGING_ENABLED` is set, `main` to production once `DEPLOY_ENABLED`
+is set. It can also be run by hand to roll back (see `deploy/DEPLOY.md`).
 Before pushing, run locally: `ruff check . && ruff format --check . && pytest`.
 
 ## Production

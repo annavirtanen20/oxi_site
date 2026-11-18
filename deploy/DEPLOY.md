@@ -127,14 +127,18 @@ Photos: `docker compose -f docker-compose.prod.yml exec -T web tar -C /app/media
 
 ## 7. Automatic deploys from GitHub (CI/CD)
 
-`.github/workflows/ci.yml` runs on every push and pull request:
+Two workflow files in `.github/workflows/`:
+
+- `ci.yml` checks every push and pull request and builds the image;
+- `deploy.yml` puts an image on a server. `ci.yml` calls it after a green build, and you can
+  run it by hand for a rollback (see "Roll back or redeploy by hand" below).
 
 | Stage | When | What |
 | --- | --- | --- |
 | lint | always | `ruff check`, `ruff format --check` |
 | test | always | Django checks, missing migrations, `pytest` against PostgreSQL 16 |
 | build | push to `develop` or `main` | Docker image → `ghcr.io/<login>/oxi_site:sha-<commit>` (plus a `:develop` / `:main` tag), smoke test |
-| deploy | push to `develop` → staging, push to `main` → production, each if enabled | SSH to that server → `deploy/deploy.sh sha-<commit>` |
+| deploy (`deploy.yml`) | push to `develop` → staging, push to `main` → production, each if enabled | SSH to that server → `deploy/deploy.sh sha-<commit>` |
 
 `deploy.sh` pulls the image, backs up the database, starts the new version and waits for
 `/health/`. If the new version isn't healthy within 3 minutes, it starts the previous tag
@@ -207,6 +211,15 @@ same image, its own database (start it with demo data; never copy real client da
 From then on every push to `develop` runs lint → test → build → deploy to staging, with the
 same health check and automatic rollback as production. Open `https://1-2-3-4.sslip.io`,
 enter the password, and check the change. Daily backups (step 6) are optional on staging.
+
+## Roll back or redeploy by hand
+
+**Actions → Deploy → Run workflow**: choose `staging` or `production` and an image tag,
+for example `sha-1a2b3c4`. Tags are listed in the repository's **Packages → oxi_site**.
+Any earlier tag rolls the server back to that version, with the same health check.
+
+GitHub shows the **Run workflow** button only once `deploy.yml` is on the default branch
+(`main`). Until then, from your computer: `gh workflow run deploy.yml --ref develop -f target=staging -f tag=sha-1a2b3c4`.
 
 ## Updating the site by hand
 
