@@ -218,8 +218,15 @@ enter the password, and check the change. Daily backups (step 6) are optional on
 for example `sha-1a2b3c4`. Tags are listed in the repository's **Packages → oxi_site**.
 Any earlier tag rolls the server back to that version, with the same health check.
 
-GitHub shows the **Run workflow** button only once `deploy.yml` is on the default branch
-(`main`). Until then, from your computer: `gh workflow run deploy.yml --ref develop -f target=staging -f tag=sha-1a2b3c4`.
+GitHub lets you run a workflow by hand only when its file is on the default branch (`main`),
+so the **Run workflow** button appears after the first release to `main`. Until then, roll
+back on the server itself, as the `oxi` user:
+
+```bash
+cd ~/oxi_site && ./deploy/deploy.sh sha-1a2b3c4
+```
+
+It does exactly what the workflow does: pull, back up the database, start, health check.
 
 ## Updating the site by hand
 
