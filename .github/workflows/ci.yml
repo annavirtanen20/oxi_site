@@ -2,8 +2,12 @@
 #
 #   every push and pull request:  lint -> tests
 #   push to develop or main:      + build the Docker image, push to GHCR tagged with the commit
-#   push to main:                 + deploy to the server (only when the repository
-#                                   variable DEPLOY_ENABLED is "true"; see deploy/DEPLOY.md)
+#   push to develop:              + deploy to the staging server (only when the repository
+#                                   variable STAGING_ENABLED is "true")
+#   push to main:                 + deploy to the production server (only when the repository
+#                                   variable DEPLOY_ENABLED is "true")
+# Each target is a GitHub environment ("staging", "production") with its own DEPLOY_* secrets;
+# see deploy/DEPLOY.md.
 
 name: CI/CD
 
@@ -114,9 +118,15 @@ jobs:
 
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    # develop -> staging, main -> production; each switched on by its own repository variable.
+    if: >-
+      (github.ref == 'refs/heads/develop' && vars.STAGING_ENABLED == 'true') ||
+      (github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true')
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    concurrency:
+      group: deploy-${{ github.ref_name }}
+      cancel-in-progress: false
     steps:
       - name: Configure SSH
         env:
@@ -127,11 +137,12 @@ jobs:
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-      - name: Deploy ${{ needs.build.outputs.tag }}
+      - name: Deploy ${{ needs.build.outputs.tag }} from ${{ github.ref_name }}
         env:
           HOST: ${{ secrets.DEPLOY_HOST }}
           USER: ${{ secrets.DEPLOY_USER }}
           TAG: ${{ needs.build.outputs.tag }}
+          BRANCH: ${{ github.ref_name }}
         run: |
           ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$USER@$HOST" \
-            "cd ~/oxi_site && git fetch -q origin main && git checkout -q origin/main -- deploy && ./deploy/deploy.sh '$TAG'"
+            "cd ~/oxi_site && git fetch -q origin '$BRANCH' && git checkout -q 'origin/$BRANCH' -- deploy && ./deploy/deploy.sh '$TAG'"

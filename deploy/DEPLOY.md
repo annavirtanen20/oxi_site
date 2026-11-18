@@ -134,7 +134,7 @@ Photos: `docker compose -f docker-compose.prod.yml exec -T web tar -C /app/media
 | lint | always | `ruff check`, `ruff format --check` |
 | test | always | Django checks, missing migrations, `pytest` against PostgreSQL 16 |
 | build | push to `develop` or `main` | Docker image → `ghcr.io/<login>/oxi_site:sha-<commit>` (plus a `:develop` / `:main` tag), smoke test |
-| deploy | push to `main`, if enabled | SSH to the server → `deploy/deploy.sh sha-<commit>` |
+| deploy | push to `develop` → staging, push to `main` → production, each if enabled | SSH to that server → `deploy/deploy.sh sha-<commit>` |
 
 `deploy.sh` pulls the image, backs up the database, starts the new version and waits for
 `/health/`. If the new version isn't healthy within 3 minutes, it starts the previous tag
@@ -157,16 +157,56 @@ restore from the pre-deploy dump in `/var/backups/oxi` if a migration was the pr
    ssh-copy-id -i oxi_deploy.pub oxi@SERVER_IP
    ssh-keyscan SERVER_IP          # copy the output for DEPLOY_KNOWN_HOSTS
    ```
-4. **Repository settings → Secrets and variables → Actions:**
-   - Secrets: `DEPLOY_HOST` (server IP), `DEPLOY_USER` (`oxi`),
-     `DEPLOY_SSH_KEY` (contents of the private `oxi_deploy` file),
-     `DEPLOY_KNOWN_HOSTS` (output of `ssh-keyscan`).
-   - Variables: `DEPLOY_ENABLED` = `true`.
+4. **Repository settings → Environments → New environment → `production`**, then in it
+   **Environment secrets**:
+   `DEPLOY_HOST` (server IP), `DEPLOY_USER` (`oxi`),
+   `DEPLOY_SSH_KEY` (contents of the private `oxi_deploy` file),
+   `DEPLOY_KNOWN_HOSTS` (output of `ssh-keyscan`).
+   Then **Secrets and variables → Actions → Variables**: `DEPLOY_ENABLED` = `true`.
    Delete the local `oxi_deploy` files afterwards; the key lives only in GitHub and on the server.
 5. (Optional) **Settings → Environments → production → Required reviewers**: GitHub then asks
    you to approve each deploy before it runs.
 
 From then on: merge `develop` → `main` and the site updates itself.
+
+## Staging: a test copy that follows `develop`
+
+Every merge into `develop` is deployed to a separate, password-protected server, so you
+and Oksana can try a change before it reaches `main` and the real site. Same scripts,
+same image, its own database (start it with demo data; never copy real client data there).
+
+1. **Server.** A second, smaller Hetzner server (e.g. CX22, 2 vCPU / 4 GB) with Ubuntu 24.04
+   and your SSH key. Run steps 2–3 above on it (`setup-server.sh`, clone the repository).
+2. **Address without buying a domain.** Use sslip.io: for the IP `1.2.3.4` the name
+   `1-2-3-4.sslip.io` already points to it, and Caddy gets a real HTTPS certificate for it.
+   With your own domain later, use a subdomain such as `staging.yourdomain.com` instead.
+3. **Configure** `~/oxi_site/deploy/.env` as in step 4, plus:
+   ```bash
+   DOMAIN=1-2-3-4.sslip.io
+   CADDYFILE=Caddyfile.staging
+   BASIC_AUTH_USER=oksana
+   BASIC_AUTH_HASH='$2a$14$…'   # from: docker run --rm caddy:2 caddy hash-password --plaintext 'a-password'
+   IMAGE=ghcr.io/<your-login-in-lowercase>/oxi_site
+   ```
+   Keep the hash in single quotes (it contains `$`). Keep `EMAIL_URL=consolemail://` so staging never
+   emails anyone.
+4. **First start** with the latest `develop` image (tag from the last green `build` on GitHub):
+   ```bash
+   cd ~/oxi_site && git checkout develop
+   ./deploy/deploy.sh develop
+   docker compose -f deploy/docker-compose.prod.yml exec web python manage.py createsuperuser
+   docker compose -f deploy/docker-compose.prod.yml exec web python manage.py seed_demo
+   ```
+   If the image package is private, run `docker login ghcr.io -u <login>` first with a token
+   that has only `read:packages`.
+5. **GitHub:** a deploy key for this server (as in "Turn it on", step 3), then
+   **Settings → Environments → New environment → `staging`** with the same four secrets
+   (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`) for the staging server,
+   and the repository variable `STAGING_ENABLED` = `true`.
+
+From then on every push to `develop` runs lint → test → build → deploy to staging, with the
+same health check and automatic rollback as production. Open `https://1-2-3-4.sslip.io`,
+enter the password, and check the change. Daily backups (step 6) are optional on staging.
 
 ## Updating the site by hand
 
