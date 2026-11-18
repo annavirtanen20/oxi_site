@@ -1,11 +1,15 @@
-# CI/CD for oxi_site
+# CI for oxi_site: checks every change and builds the image.
 #
 #   every push and pull request:  lint -> tests
 #   push to develop or main:      + build the Docker image, push to GHCR tagged with the commit
-#   push to main:                 + deploy to the server (only when the repository
-#                                   variable DEPLOY_ENABLED is "true"; see deploy/DEPLOY.md)
+#                                 + hand the image to deploy.yml:
+#                                     develop -> staging     (repository variable STAGING_ENABLED = "true")
+#                                     main    -> production  (repository variable DEPLOY_ENABLED = "true")
+#
+# The deployment itself lives in deploy.yml (also runnable by hand for a rollback).
+# See deploy/DEPLOY.md.
 
-name: CI/CD
+name: CI
 
 on:
   push:
@@ -112,26 +116,14 @@ jobs:
             ${{ steps.vars.outputs.image }}:${{ steps.vars.outputs.tag }} \
             python manage.py check --deploy --fail-level ERROR
 
+  # Deploy only after this commit's image is built and smoke-tested; the steps are in deploy.yml.
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Configure SSH
-        env:
-          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-        run: |
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-      - name: Deploy ${{ needs.build.outputs.tag }}
-        env:
-          HOST: ${{ secrets.DEPLOY_HOST }}
-          USER: ${{ secrets.DEPLOY_USER }}
-          TAG: ${{ needs.build.outputs.tag }}
-        run: |
-          ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$USER@$HOST" \
-            "cd ~/oxi_site && git fetch -q origin main && git checkout -q origin/main -- deploy && ./deploy/deploy.sh '$TAG'"
+    if: >-
+      (github.ref == 'refs/heads/develop' && vars.STAGING_ENABLED == 'true') ||
+      (github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true')
+    uses: ./.github/workflows/deploy.yml
+    with:
+      target: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      tag: ${{ needs.build.outputs.tag }}
+    secrets: inherit

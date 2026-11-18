@@ -71,12 +71,16 @@ services:
     environment:
       DOMAIN: ${DOMAIN:?set DOMAIN in deploy/.env}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
+      # Staging only (Caddyfile.staging): login and bcrypt hash for the site-wide password.
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:-}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:-}
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Caddyfile.staging adds a password and noindex for the staging server.
+      - ./${CADDYFILE:-Caddyfile}:/etc/caddy/Caddyfile:ro
       - static:/srv/static:ro
       - media:/srv/media:ro
       - caddy_data:/data

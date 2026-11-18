@@ -1,0 +1,72 @@
+# Deployment of an image built by ci.yml to one server.
+#
+#   Automatically: called by ci.yml after a green build
+#     develop -> staging, main -> production.
+#   By hand (rollback or redeploy): Actions -> Deploy -> Run workflow,
+#     choose the target and an image tag, e.g. sha-1a2b3c4.
+#
+# Each target is a GitHub environment ("staging", "production") holding its own secrets:
+# DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS. See deploy/DEPLOY.md.
+
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: staging or production
+        required: true
+        type: string
+      tag:
+        description: Image tag built by ci.yml, e.g. sha-1a2b3c4
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Where to deploy
+        required: true
+        type: choice
+        options: [staging, production]
+      tag:
+        description: "Image tag, e.g. sha-1a2b3c4 (any earlier tag rolls back)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    # Never run two deploys to the same server at once; a second one waits.
+    concurrency:
+      group: deploy-${{ inputs.target }}
+      cancel-in-progress: false
+    env:
+      TARGET: ${{ inputs.target }}
+      TAG: ${{ inputs.tag }}
+      # The deploy scripts come from the branch that feeds this server.
+      BRANCH: ${{ inputs.target == 'production' && 'main' || 'develop' }}
+    steps:
+      - name: Check the inputs
+        run: |
+          [[ "$TARGET" == staging || "$TARGET" == production ]] || { echo "Unknown target: $TARGET"; exit 1; }
+          [[ "$TAG" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Invalid image tag: $TAG"; exit 1; }
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Deploy ${{ inputs.tag }} to ${{ inputs.target }}
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$USER@$HOST" \
+            "cd ~/oxi_site && git fetch -q origin '$BRANCH' && git checkout -q 'origin/$BRANCH' -- deploy && ./deploy/deploy.sh '$TAG'"
